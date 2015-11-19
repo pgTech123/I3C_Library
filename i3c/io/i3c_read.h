@@ -29,7 +29,7 @@ public:
 
     // -- File actions --
     int open(const char* filename);
-    bool close();
+    void close();
 
     // -- Reading operation --
     // |read()| fills the content of the pointers so that they describe the frame
@@ -56,7 +56,6 @@ private:
 
     fstream m_file;
     ImageFile* m_ImageFile;
-    VideoFile* m_VideoFile;
 
     I3C_Frame* m_pFrame_Buf1;    //This first buffer is used for buffer swap if video
     I3C_Frame* m_pFrame_Buf2;    //This second buffer is used for buffer swap if video

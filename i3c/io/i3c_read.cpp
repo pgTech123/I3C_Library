@@ -7,16 +7,13 @@ I3C_Read::I3C_Read()
     m_pFrame_Buf1 = NULL;
     m_pFrame_Buf2 = NULL;
     m_ImageFile = new ImageFile;
-    m_VideoFile = new VideoFile;
 }
 
 I3C_Read::~I3C_Read()
 {
-    this->stopStream();
     this->close();
 
     delete m_ImageFile;
-    delete m_VideoFile;
 }
 
 int I3C_Read::open(const char* filename)
@@ -44,8 +41,11 @@ int I3C_Read::open(const char* filename)
     return I3C_SUCCESS;
 }
 
-bool I3C_Read::close()
+void I3C_Read::close()
 {
+    this->stopStream();
+
+    //Close file if it was opened
     if(!m_file.is_open()){
         m_file.close();
     }

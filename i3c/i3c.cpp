@@ -69,18 +69,3 @@ void I3C_Frame::clear()
     }
     init();
 }
-
-
-I3C_VideoFrame::I3C_VideoFrame()
-{
-}
-
-I3C_VideoFrame::~I3C_VideoFrame()
-{
-    this->clear();
-}
-
-void I3C_VideoFrame::clear()
-{
-    //TODO
-}

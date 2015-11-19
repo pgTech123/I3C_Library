@@ -6,7 +6,8 @@
 #define IMAGE_V1_H
 
 #include <fstream>
-#include <iostream>     //DEBUG ONLY
+#include <iostream>
+#include <string>
 
 #include "../../i3c.h"
 #include "../../utils/binary_func.h"

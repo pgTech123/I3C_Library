@@ -13,6 +13,8 @@
 #define I3C_INVALID_IMAGE_SIZE          3
 #define I3C_FILE_CORRUPTED              4
 
+#define I3C_CANNOT_FIND_CONTEXT         101
+
 struct Pixel{
     unsigned char red;
     unsigned char green;
@@ -35,6 +37,15 @@ private:
 };
 
 
+class Reflexion_Pixels{
+public:
+    char theta;
+    char phi;
+    char magnetude;
+    char diffusion;
+};
+
+
 class I3C_Frame{
 
 public:
@@ -42,11 +53,22 @@ public:
     //Arrays
     Pixel* pixel;           //Can be NULL if |yuv_pixel| != NULL
     YUV_Pixels* yuv_pixel;  //NOT AN ARRAY
+    Reflexion_Pixels* reflexion_pixel;
     unsigned char* cubeMap;
     unsigned int* childCubeId;
     //Array size
     unsigned int pixelArraySize;
     unsigned int cubeMapArraySize;
+
+    //VIDEO ONLY
+    bool newFrame;
+
+    //Change each frame to specify what has changed(to not be
+    //obligated to rewrite the whole frame)
+    long long *modifPixelBitmask;
+    long long *modifMapBitmask;
+    long long *modifChildIdBitmask;
+    //TODO: worst diffPixels, worst diff map worst diff child Id (OCL mem allocation)
 
     I3C_Frame();
     ~I3C_Frame();
@@ -56,21 +78,6 @@ private:
     void init();
 };
 
-
-class I3C_VideoFrame{
-
-public:
-    I3C_Frame frame;    //Larger than Image to fit displacement
-    //Change each frame to specify what has changed(to not be
-    //obligated to rewrite the whole frame)
-    long long modifPixelBitmask;
-    long long modifMapBitmask;
-    long long modifChildIdBitmask;
-
-    I3C_VideoFrame();
-    ~I3C_VideoFrame();
-    void clear();
-};
 
 
 #endif // I3C_H

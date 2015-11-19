@@ -6,22 +6,19 @@ Tests::Tests()
 
 int Tests::renderingEngine(int argc, char *argv[])
 {
+    QApplication a(argc, argv);
+
+    QSurfaceFormat format;
+    format.setVersion(3, 3);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(format);
+
     //Instanciate test
-    Basic_GL_I3C_RenderTest *window = new Basic_GL_I3C_RenderTest();
+    Basic_GL_I3C_RenderTest window;
+    window.setFormat(format);
+    window.show();
 
-    //Try to init OpenGL & SDL2
-    if(window->initWindow("Basic GL I3C Render Test") < 0){
-        delete window;
-        return -1;
-    }
-
-    //Load the wanted image
-    window->readI3CFile("./io_samples/imageV1.i3c");
-
-    //Call program main loop
-    window->loop();
-
-    //Clear memory and return
-    delete window;
-    return 0;
+    return a.exec();
 }

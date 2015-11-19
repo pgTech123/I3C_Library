@@ -3,52 +3,28 @@
 
 #include <stdio.h>
 
-#include <SDL2/SDL.h>   //UI (multiplatform)
-#include <SDL2/SDL_opengl.h>
+#include <QSurfaceFormat>
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions_3_3_Core>
 
-#ifdef __APPLE__            //APPLE OS HAS NOT BEEN TESTED YET
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#include <GLUT/glut.h>
-#else
-#ifdef _WIN32               //WINDOWS OS HAS NOT BEEN TESTED YET
-  #include <windows.h>
-#endif
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
-#include <GL/glext.h>
+#include <QTimer>
 
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
-#endif
-
-
-#define WINDOW_WIDTH                800   //px
-#define WINDOW_HEIGHT               600   //px
-#define GL_CONTEXT_MAJOR_VERSION    3
-#define GL_CONTEXT_MINOR_VERSION    3
 #define DEFAULT_ERROR_FILE          "log/error.txt"
 #define DEFAULT_LOG_FILE            "log/log.txt"
+#define REFRESH_RATE_MS             30 //ms
 
-class GL_Window
+class GL_Window: public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core
 {
+
+    Q_OBJECT
+
 public:
-    GL_Window();
-    GL_Window(const char* logFileName, const char* errorFileName);
+    GL_Window(QWidget* parent = 0 );
     virtual ~GL_Window();
 
-    int initWindow(const char* windowName);
-    void loop();
-
-protected:
-    virtual bool exit();        //Default: exit when "escape" clicked
-
-    virtual void initGL();
-    virtual void renderGL();
-    virtual void stopGL();
-
 private:
+    void openLogFiles(const char* logFileName, const char* errorFileName);
+    void initRefreshRate(int interval_ms);
     void quitWindow();
 
 protected:
@@ -56,12 +32,8 @@ protected:
     FILE* m_p_logFile;
     FILE* m_p_errorFile;
 
-    //SDL Window & GL context
-    SDL_Window* m_gl_Window;
-    SDL_GLContext m_gl_Context;
-
-    //Events
-    SDL_Event m_sld_event;
+private:
+    QTimer m_refreshTimer;
 };
 
 #endif // GL_WINDOW_H
