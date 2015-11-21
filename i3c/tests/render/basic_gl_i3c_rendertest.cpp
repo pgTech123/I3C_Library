@@ -69,9 +69,9 @@ void Basic_GL_I3C_RenderTest::paintGL()
 
     // Update I3C lookat
     static float angleX = 0;
-    angleX +=0.01;
+    angleX +=0.02;
     m_GLI3CScene->lookAt(0,0,0, angleX, 0, 0);
-    cout << angleX << endl;
+    //cout << angleX << endl;
 
     //Render I3C
     m_GLI3CScene->renderI3C();                           //Render I3C elements

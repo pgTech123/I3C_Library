@@ -37,7 +37,6 @@ bool GL_I3C_Element::loadFile(const char* filename)
     //If an OpenCL context is available, load the image on GPU
     if(m_OCLContextIsSet && m_fileLoaded){
         this->prepareOCL();
-        this->loadFrameOCL();
     }
 
     return m_fileLoaded;
@@ -113,7 +112,7 @@ bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_
 
     //Creation of the kernels
     m_clRenderingKernel = clCreateKernel(*program, "render", NULL);
-    m_clClearTextureKernel = clCreateKernel(*program, "clearTexture", NULL);
+    m_clClearTextureKernel = clCreateKernel(*program, "clearTexture", NULL);    //DEBUG ONLY
     m_clClearKernel = clCreateKernel(*program, "clearMemoryBit", NULL);
     m_clLoadVideoBufferKernel = clCreateKernel(*program, "loadVideoBuffer", NULL);
     //TODO: Create other kernels here
@@ -121,7 +120,6 @@ bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_
     //If a file was already specified, load it
     if(m_fileLoaded){
         this->prepareOCL();
-        this->loadFrameOCL();
     }
     return true;
 }
@@ -146,7 +144,7 @@ void GL_I3C_Element::setTextures(cl_mem* renderingTexture, cl_mem* depthMap)
 
     //TODO: set Arguments
     clSetKernelArg(m_clRenderingKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture);
-    clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture);
+    clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture); //DEBUG ONLY
 
     m_texturesSpecified = true;
 }
@@ -154,42 +152,23 @@ void GL_I3C_Element::setTextures(cl_mem* renderingTexture, cl_mem* depthMap)
 void GL_I3C_Element::render()
 {
     if(m_texturesSpecified){
-        //TODO: Start clearing mem bit
-        cl_int error;
-
-        //Compute transform
+        //Compute object transform
         computeTransform(&m_originalCoord, &m_transformedObject, m_transformMatrix);
         projectObject(&m_transformedObject, &m_ObjectBoundOnScreen, m_screenWidth, m_screenHeight);
 
-        glFinish(); //FIXME: IMPROVE THAT...
-        error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
-        //cout << "Texture acquired!  " << error << endl;
+        this->acquireGLTexture();
 
-        //DEBUG
-        size_t wi_clear[2] = {m_screenWidth, m_screenHeight};
-        error = clEnqueueNDRangeKernel(*m_clQueue, m_clClearTextureKernel, 2, NULL, wi_clear , NULL, 0, NULL, NULL);
+        //IF position exactly = to last position, do not clear precomputed cube positions
 
+        //Clear previous texture
+        this->enqueueClearTexture();
 
-        //Update Object Boundaries
-        cl_int2 objectScreenOffset;
-        objectScreenOffset.s[0] = (cl_int)m_ObjectBoundOnScreen.x;
-        objectScreenOffset.s[1] = (cl_int)m_ObjectBoundOnScreen.y;
-        clEnqueueWriteBuffer(*m_clQueue, m_clObjectOffset, CL_TRUE, 0, sizeof(cl_int2),
-                             &objectScreenOffset, 0, NULL, NULL);
+        //Actual rendering
+        this->enqueueSetScreenBoundaries();
+        this->enqueueSetCubeCorners();
+        this->enqueueRender();
 
-        //Create the appropriate amount of workitems (w and h from m_ObjectBoundOnScreen)
-        size_t wi[2] = {m_ObjectBoundOnScreen.w, m_ObjectBoundOnScreen.h};
-        error = clEnqueueNDRangeKernel(*m_clQueue, m_clRenderingKernel, 2, NULL, wi , NULL, 0, NULL, NULL);
-        if(error == CL_INVALID_KERNEL_ARGS){
-            cout << "Invalid Arg" << endl;
-        }
-        else if(error == CL_SUCCESS){
-            // cout << "OCL WORK!  " << endl;
-        }
-
-        clFinish(*m_clQueue);
-        error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
-        //cout << "Texture released!  " << error << endl;
+        this->releaseGLTexture();
     }
 }
 
@@ -237,22 +216,33 @@ void GL_I3C_Element::prepareOCL()
                                   m_frame->cubeMapArraySize*sizeof(cl_char), NULL, NULL);
     m_clChildId = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
                                  m_frame->cubeMapArraySize*sizeof(cl_int), NULL, NULL);
-    m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                      sizeof(cl_int2), NULL, NULL);
+    m_clCubeCorners = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
+                                     /*TODO: FACTOR * */8*sizeof(cl_float3), NULL, NULL);
+
+
+    //Allocate Fixed size memory
+    m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_int2), NULL, NULL);
 
     //Set Args
-    //TODO
     clSetKernelArg(m_clRenderingKernel, 1, sizeof(m_clObjectOffset), &m_clObjectOffset);
+    clSetKernelArg(m_clRenderingKernel, 2, sizeof(m_clPixels), &m_clPixels);
+    clSetKernelArg(m_clRenderingKernel, 3, sizeof(m_clCubesMap), &m_clCubesMap);
+    clSetKernelArg(m_clRenderingKernel, 4, sizeof(m_clChildId), &m_clChildId);
+    clSetKernelArg(m_clRenderingKernel, 5, sizeof(m_clCubeCorners), &m_clCubeCorners);
 
     //Allocate video memory
     if(m_i3cFile.isVideoFile()){
         //TODO: allocate video mem
     }
+
+    //Upload data to GPU memory
+    this->loadFrameOCL();
 }
 
 void GL_I3C_Element::loadFrameOCL()
 {
     //TODO: get frame and transfer on OCL mem (if video, load first frame, maybe fill buffers)
+    //TODO: enqueue ...
 }
 
 void GL_I3C_Element::initCLMemObj()
@@ -268,9 +258,10 @@ void GL_I3C_Element::initCLMemObj()
     m_clRenderingKernel = NULL;
     m_clClearKernel = NULL;
     m_clLoadVideoBufferKernel = NULL;
-    m_clClearTextureKernel = NULL;
+    m_clClearTextureKernel = NULL;      //DEBUG ONLY
 
     //Mem (Arguments)
+    m_clCubeCorners = NULL;
     m_clPixels = NULL;
     m_clCubesMap = NULL;
     m_clChildId = NULL;
@@ -295,7 +286,7 @@ void GL_I3C_Element::releaseKernels()
         clReleaseKernel(m_clLoadVideoBufferKernel);
         m_clLoadVideoBufferKernel = NULL;
     }
-    if(m_clClearTextureKernel != NULL){
+    if(m_clClearTextureKernel != NULL){     //DEBUG ONLY
         clReleaseKernel(m_clClearTextureKernel);
         m_clClearTextureKernel = NULL;
     }
@@ -304,6 +295,10 @@ void GL_I3C_Element::releaseKernels()
 void GL_I3C_Element::releaseArguments()
 {
     //Release Argiments
+    if(m_clCubeCorners != NULL){
+        clReleaseMemObject(m_clCubeCorners);
+        m_clCubeCorners = NULL;
+    }
     if(m_clPixels != NULL){
         clReleaseMemObject(m_clPixels);
         m_clPixels = NULL;
@@ -354,5 +349,70 @@ void GL_I3C_Element::delete_m_Frame()
     if(m_frame != NULL){
         delete m_frame;
         m_frame = NULL;
+    }
+}
+
+void GL_I3C_Element::acquireGLTexture()
+{
+    glFinish(); //FIXME: IMPROVE THAT...
+    cl_int error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
+    if(error != CL_SUCCESS){
+        cout << "Error aquiring the texture..." << endl;
+    }
+}
+
+void GL_I3C_Element::releaseGLTexture()
+{
+    clFinish(*m_clQueue);
+    cl_int error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
+    if(error != CL_SUCCESS){
+        cout << "Error releasing texture..." << endl;
+    }
+}
+
+void GL_I3C_Element::enqueueSetScreenBoundaries()
+{
+    //Update Object Boundaries
+    cl_int2 objectScreenOffset;
+    objectScreenOffset.s[0] = (cl_int)m_ObjectBoundOnScreen.x;
+    objectScreenOffset.s[1] = (cl_int)m_ObjectBoundOnScreen.y;
+    clEnqueueWriteBuffer(*m_clQueue, m_clObjectOffset, CL_TRUE, 0, sizeof(objectScreenOffset),
+                         &objectScreenOffset, 0, NULL, NULL);
+}
+
+void GL_I3C_Element::enqueueSetCubeCorners()
+{
+    cl_float3 cubeCorners[8];
+    for(int i = 0; i < 8; i++){
+        cubeCorners[i].s[0] = (cl_float)m_transformedObject.x[i];
+        cubeCorners[i].s[1] = (cl_float)m_transformedObject.y[i];
+        cubeCorners[i].s[2] = (cl_float)m_transformedObject.z[i];
+    }
+    clEnqueueWriteBuffer(*m_clQueue, m_clCubeCorners, CL_TRUE, 0, sizeof(cubeCorners),
+                         cubeCorners, 0, NULL, NULL);
+}
+
+void GL_I3C_Element::enqueueClearTexture()
+{
+    size_t wi_clear[2] = {m_screenWidth, m_screenHeight};
+    cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clClearTextureKernel, 2, NULL,
+                                          wi_clear , NULL, 0, NULL, NULL);
+
+    if(error != CL_SUCCESS){
+        cout << "Error Clearing the texture" << endl;
+    }
+}
+
+void GL_I3C_Element::enqueueRender()
+{
+    //Create the appropriate amount of workitems (w and h from m_ObjectBoundOnScreen)
+    size_t wi[2] = {m_ObjectBoundOnScreen.w, m_ObjectBoundOnScreen.h};
+    cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clRenderingKernel, 2, NULL,
+                                          wi , NULL, 0, NULL, NULL);
+    if(error == CL_INVALID_KERNEL_ARGS){
+        cout << "Invalid Arg" << endl;
+    }
+    else if(error != CL_SUCCESS){
+        cout << "Error Rendering" << endl;
     }
 }

@@ -74,6 +74,15 @@ private:
     void deleteCLMemObj();
     void delete_m_Frame();
 
+    void acquireGLTexture();
+    void releaseGLTexture();
+
+    void enqueueSetScreenBoundaries();
+    void enqueueSetCubeCorners();
+
+    void enqueueClearTexture();
+    void enqueueRender();
+
 private:
     //File
     I3C_Read m_i3cFile;
@@ -105,9 +114,13 @@ private:
 
     //Kernels
     cl_kernel m_clRenderingKernel;
-    cl_kernel m_clClearTextureKernel;
+    cl_kernel m_clClearTextureKernel;       //DEBUG ONLY
     cl_kernel m_clClearKernel;
     cl_kernel m_clLoadVideoBufferKernel;
+
+    //OpenCL image cube memory
+    cl_mem m_clCubeCorners;
+    cl_mem m_clObjectOffset;   //As the whole screen won't be rendered, specify where to start
 
     //OpenCL image/video memory
     cl_mem* m_clRenderingTexture;    //!!! THIS IS MANAGED OUTSIDE THIS CLASS: do not release
@@ -121,8 +134,6 @@ private:
     cl_mem m_clDiffPixels;
     cl_mem m_clDiffCubesMap;
     cl_mem m_clDiffChildId;
-
-    cl_mem m_clObjectOffset;   //As the whole screen won't be rendered, specify where to start
 };
 
 #endif // GL_I3C_ELEMENT_H
