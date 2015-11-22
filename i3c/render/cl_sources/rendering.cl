@@ -3,9 +3,67 @@
 //Description:      GPU basic functions for rendering
 
 
+// To save memory and memory access bandwidth, as well as some
+// processing power, a cube is stored in memory as 3 points. The
+// whole cube can then be reconstructed.
+/*
+ *     3 PTS CUBES                      8 PTS CUBES
+ *     ------------                     ------------
+ *
+ *   (_pt 0)                              4 *------------------* 5
+ *      *                                  /|                 /|
+ *      |                                 / |                / |
+ *      |                              0 *------------------* 1|
+ *      |                                |  |               |  |           y
+ *      |                                |  |               |  |           ^
+ *      *------------*                   |  |               |  |           |  ^ z
+ *   (_pt 1)       (_pt 2)               |  |               |  |           | /
+ *                                       | 6*---------------|--* 7        -|-------> x
+ *                                       | /                | /          (0,0,0)
+ *                                       |/                 |/
+ *                                     2 *------------------* 3
+ */
+
+void reconstructCube(/*__global*/float3* cube3Pts, float3* cube8Pts)
+{
+    // Copy 3 points to cube 8 pts
+    cube8Pts[0] = cube3Pts[0];
+    cube8Pts[2] = cube3Pts[1];
+    cube8Pts[3] = cube3Pts[2];
+
+    // 1 - Find distance between pt0 and pt1
+    float cubeLength = distance(cube3Pts[0], cube3Pts[1]);   //For more optimisations, could use fast_distance()
+
+    // 2 - Cross product to find pt6
+    float4 vectPt1Pt0, vectPt1Pt2;
+
+    vectPt1Pt0.xyz = cube3Pts[0] - cube3Pts[1];
+    vectPt1Pt2.xyz = cube3Pts[2] - cube3Pts[1];
+
+    //Actual cross product and adjust size
+    cube8Pts[6] = (normalize(cross(vectPt1Pt2, vectPt1Pt0).xyz)) * cubeLength;
+
+    //Cross product to find other points
+
+    // 3 - Find plane equation formed with pt0, pt3 and pt6 (cube8)
+    //TODO
+    // Solve normal with pt2 (cube8), and write pt5 mirror to it
+
+    //TODO
+}
+
+void reconstructFace(float3* cube3Pts, float3* face4Pts)
+{
+
+}
+
+
+
+
 // Compute child cubes
 void computeChildCubes(__global float3 *parentCube, float3 *childCube)
 {
+/* reconstruct face, find mid, store child*/
     float3 childCorners[27];
 
     //Order of computation: see diagram cause without it, this is really hard to understand
