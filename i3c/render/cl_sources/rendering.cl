@@ -3,9 +3,16 @@
 //Description:      GPU basic functions for rendering
 
 
+//-----------------------------------------------------------------
+//
+//                  RECONSTRUCTION FUNCTIONS
+//
+//-----------------------------------------------------------------
+
 // To save memory and memory access bandwidth, as well as some
 // processing power, a cube is stored in memory as 3 points. The
 // whole cube can then be reconstructed.
+
 /*
  *     3 PTS CUBES                      8 PTS CUBES
  *     ------------                     ------------
@@ -32,30 +39,124 @@ void reconstructCube(/*__global*/float3* cube3Pts, float3* cube8Pts)
     cube8Pts[3] = cube3Pts[2];
 
     // 1 - Find distance between pt0 and pt1
-    float cubeLength = distance(cube3Pts[0], cube3Pts[1]);   //For more optimisations, could use fast_distance()
+    //float cubeLength = distance(cube3Pts[0], cube3Pts[1]);   //FIXME: For more optimisations, could use fast_distance()
 
     // 2 - Cross product to find pt6
     float4 vectPt1Pt0, vectPt1Pt2;
-
     vectPt1Pt0.xyz = cube3Pts[0] - cube3Pts[1];
     vectPt1Pt2.xyz = cube3Pts[2] - cube3Pts[1];
 
     //Actual cross product and adjust size
-    cube8Pts[6] = (normalize(cross(vectPt1Pt2, vectPt1Pt0).xyz)) * cubeLength;
+    //cube8Pts[6] = (normalize(cross(vectPt1Pt2, vectPt1Pt0).xyz)) * cubeLength;  //FIXME: maybe optimisation with sqrt because 90deg btw vectors
+    cube8Pts[6] = sqrt(cross(vectPt1Pt2, vectPt1Pt0).xyz);
 
-    //Cross product to find other points
+    // 3 - Find remaining points by copying translation of parallel vertice
 
-    // 3 - Find plane equation formed with pt0, pt3 and pt6 (cube8)
-    //TODO
-    // Solve normal with pt2 (cube8), and write pt5 mirror to it
+    //Find point 4
+    float3 translation = cube8Pts[6] - cube8Pts[2];
+    cube8Pts[4] =  cube8Pts[0] + translation;
 
-    //TODO
+    //Find 3 remaining points (1, 5, 7)
+    translation = cube8Pts[3] - cube8Pts[2];
+    cube8Pts[1] =  cube8Pts[0] + translation;
+    cube8Pts[5] =  cube8Pts[4] + translation;
+    cube8Pts[7] =  cube8Pts[6] + translation;
 }
+
+/*
+ *     3 PTS CUBES                      4 PTS FACE
+ *     ------------                     ------------
+ *
+ *   (_pt 0)                      (_pt 0)       (_pt 3)
+ *      *                             *-----------*
+ *      |                             |           |
+ *      |                             |           |
+ *      |                             |           |
+ *      |                             |           |
+ *      *------------*                *-----------*
+ *   (_pt 1)       (_pt 2)         (_pt 1)       (_pt 2)
+ */
 
 void reconstructFace(float3* cube3Pts, float3* face4Pts)
 {
+    face4Pts[0] = cube3Pts[0];
+    face4Pts[1] = cube3Pts[1];
+    face4Pts[2] = cube3Pts[2];
 
+    //Find the remaining point by copying translation of parallel vertice
+    float3 translation = cube3Pts[2] - cube3Pts[1];
+    face4Pts[3] = cube3Pts[0] + translation;
 }
+
+float3 getFaceMissingPoint(float3* cube3Pts)
+{
+    //Find the remaining point by copying translation of parallel vertice
+    float3 translation = cube3Pts[2] - cube3Pts[1];
+    return (cube3Pts[0] + translation);
+}
+
+/*
+ *     3 PTS CUBE                       4 PTS CORNER
+ *     -----------                      -------------
+ *
+ *   (_pt 0)                      (_pt 0)
+ *      *                             *
+ *      |                             |
+ *      |                             |  * (_pt 3)
+ *      |                             | /
+ *      |                             |/
+ *      *------------*                *-----------*
+ *   (_pt 1)       (_pt 2)         (_pt 1)       (_pt 2)
+ */
+void reconstructCorner(float3* cube3Pts, float3* corner4Pts)
+{
+    // 1 - Copy 3 points to cube 8 pts
+    corner4Pts[0] = cube3Pts[0];
+    corner4Pts[1] = cube3Pts[1];
+    corner4Pts[2] = cube3Pts[2];
+
+    // 2 - Cross product to find pt3
+    float4 vectPt1Pt0, vectPt1Pt2;
+    vectPt1Pt0.xyz = cube3Pts[0] - cube3Pts[1];
+    vectPt1Pt2.xyz = cube3Pts[2] - cube3Pts[1];
+
+    // 3 - Actual cross product and adjust size
+    corner4Pts[3] = sqrt(cross(vectPt1Pt2, vectPt1Pt0).xyz);
+}
+
+float3 getCornerMissingPoint(float3* cube3Pts)
+{
+    // 1 - Cross product to find pt3
+    float4 vectPt1Pt0, vectPt1Pt2;
+    vectPt1Pt0.xyz = cube3Pts[0] - cube3Pts[1];
+    vectPt1Pt2.xyz = cube3Pts[2] - cube3Pts[1];
+
+    // 2 - Actual cross product and adjust size
+    return sqrt(cross(vectPt1Pt2, vectPt1Pt0).xyz);
+}
+
+
+
+//-----------------------------------------------------------------
+//
+//                CHILDREN COMPUTATION FUNCTIONS
+//
+//-----------------------------------------------------------------
+
+void updateChildPosition( __global float3 *cubesStorage, int offsetParent,
+                          int offsetFirstChild, char map)
+{
+    //TODO: Mark cube as computing in progress
+    //TODO: Compute child
+    //TODO: Atomic write & make child cubes available
+}
+
+int4 getPixelBoundingRect(__global float3 *cubesStorage, int offset)
+{
+    //TODO: (basically function project to clean)
+}
+
+
 
 
 
