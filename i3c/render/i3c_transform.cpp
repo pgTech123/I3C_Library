@@ -64,12 +64,12 @@ void computeTransform(Mat4x4* originalCoord,
         transformedObject->x[i] =(DefaultCube.x[i]*transformSumMatrix.element[0][0]+
                                   DefaultCube.y[i]*transformSumMatrix.element[0][1]+
                                   DefaultCube.z[i]*transformSumMatrix.element[0][2]+
-                                  /* (1x) */       transformSumMatrix.element[0][3]) * SCALE_FACTOR;
+                                  /* (1x) */       transformSumMatrix.element[0][3]);
 
         transformedObject->y[i] =(DefaultCube.x[i]*transformSumMatrix.element[1][0]+
                                   DefaultCube.y[i]*transformSumMatrix.element[1][1]+
                                   DefaultCube.z[i]*transformSumMatrix.element[1][2]+
-                                  /* (1x) */       transformSumMatrix.element[1][3]) * SCALE_FACTOR;
+                                  /* (1x) */       transformSumMatrix.element[1][3]);
 
         transformedObject->z[i] =(DefaultCube.x[i]*transformSumMatrix.element[2][0]+
                                   DefaultCube.y[i]*transformSumMatrix.element[2][1]+
@@ -98,8 +98,8 @@ void projectObject(ObjectBoundaries* transformedObject, ScreenBoundaries* screen
             screenBound->h = 0;
         }
 
-        float tmpX = transformedObject->x[i]/transformedObject->z[i];
-        float tmpY = transformedObject->y[i]/transformedObject->z[i];
+        float tmpX = transformedObject->x[i] * SCALE_FACTOR/transformedObject->z[i];
+        float tmpY = transformedObject->y[i] * SCALE_FACTOR/transformedObject->z[i];
 
         /*cout << "TMPX = " << tmpX << endl;
         cout << "TMPY = " << tmpY << endl;*/

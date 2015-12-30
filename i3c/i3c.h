@@ -50,6 +50,7 @@ class I3C_Frame{
 
 public:
     int resolution;
+    int numberOfLevels;
     //Arrays
     Pixel* pixel;           //Can be NULL if |yuv_pixel| != NULL
     YUV_Pixels* yuv_pixel;  //NOT AN ARRAY

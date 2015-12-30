@@ -211,17 +211,17 @@ void GL_I3C_Element::prepareOCL()
 
     //Allocate memory
     m_clPixels = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                m_frame->pixelArraySize*sizeof(cl_char3), NULL, NULL);
+                                   m_frame->pixelArraySize*sizeof(cl_char4), NULL, NULL);
     m_clCubesMap = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                  m_frame->cubeMapArraySize*sizeof(cl_char), NULL, NULL);
+                                   m_frame->cubeMapArraySize*sizeof(cl_char), NULL, NULL);
     m_clChildId = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                 m_frame->cubeMapArraySize*sizeof(cl_int), NULL, NULL);
+                                   m_frame->cubeMapArraySize*sizeof(cl_uint), NULL, NULL);
     m_clCubeCorners = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                     /*TODO: FACTOR * */8*sizeof(cl_float3), NULL, NULL);
+                                   m_frame->cubeMapArraySize*3*sizeof(cl_float4), NULL, NULL);
 
-
-    //Allocate Fixed size memory
+    //Allocate fixed size memory
     m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_int2), NULL, NULL);
+    m_clNumberOfLevels = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_uint), NULL, NULL);
 
     //Set Args
     clSetKernelArg(m_clRenderingKernel, 1, sizeof(m_clObjectOffset), &m_clObjectOffset);
@@ -229,6 +229,7 @@ void GL_I3C_Element::prepareOCL()
     clSetKernelArg(m_clRenderingKernel, 3, sizeof(m_clCubesMap), &m_clCubesMap);
     clSetKernelArg(m_clRenderingKernel, 4, sizeof(m_clChildId), &m_clChildId);
     clSetKernelArg(m_clRenderingKernel, 5, sizeof(m_clCubeCorners), &m_clCubeCorners);
+    clSetKernelArg(m_clRenderingKernel, 6, sizeof(m_clNumberOfLevels), &m_clNumberOfLevels);
 
     //Allocate video memory
     if(m_i3cFile.isVideoFile()){
@@ -241,8 +242,20 @@ void GL_I3C_Element::prepareOCL()
 
 void GL_I3C_Element::loadFrameOCL()
 {
-    //TODO: get frame and transfer on OCL mem (if video, load first frame, maybe fill buffers)
-    //TODO: enqueue ...
+    if(m_frame == NULL){
+        return;
+    }
+    enqueueSetNumberOfLevels();
+    if(m_i3cFile.isImageFile()){
+        //|m_frame| should already be filled
+        enqueueSetPixels();
+        enqueueSetChildId();
+        enqueueSetCubeMaps();
+    }
+    else if(m_i3cFile.isVideoFile()){
+        //TODO
+    }
+
 }
 
 void GL_I3C_Element::initCLMemObj()
@@ -269,6 +282,7 @@ void GL_I3C_Element::initCLMemObj()
     m_clDiffCubesMap = NULL;
     m_clDiffChildId = NULL;
     m_clObjectOffset = NULL;
+    m_clNumberOfLevels = NULL;
 }
 
 void GL_I3C_Element::releaseKernels()
@@ -327,6 +341,10 @@ void GL_I3C_Element::releaseArguments()
         clReleaseMemObject(m_clObjectOffset);
         m_clObjectOffset = NULL;
     }
+    if(m_clNumberOfLevels != NULL){
+        clReleaseMemObject(m_clNumberOfLevels);
+        m_clNumberOfLevels = NULL;
+    }
 }
 
 void GL_I3C_Element::forgetTextures()
@@ -380,16 +398,71 @@ void GL_I3C_Element::enqueueSetScreenBoundaries()
                          &objectScreenOffset, 0, NULL, NULL);
 }
 
+void GL_I3C_Element::enqueueSetNumberOfLevels()
+{
+    cl_uint numberOfLevels;
+    numberOfLevels = (cl_uint)m_frame->numberOfLevels;
+    clEnqueueWriteBuffer(*m_clQueue, m_clNumberOfLevels, CL_TRUE, 0, sizeof(numberOfLevels),
+                         &numberOfLevels, 0, NULL, NULL);
+}
+
 void GL_I3C_Element::enqueueSetCubeCorners()
 {
-    cl_float3 cubeCorners[8];
-    for(int i = 0; i < 8; i++){
-        cubeCorners[i].s[0] = (cl_float)m_transformedObject.x[i];
-        cubeCorners[i].s[1] = (cl_float)m_transformedObject.y[i];
-        cubeCorners[i].s[2] = (cl_float)m_transformedObject.z[i];
+    cl_float4 cubeCorners[3];
+    int cornerIndex[4] = {0, 2, 3, 6}; // See diagram: we only store 3 point for a given cube on GPU
+    for(int i = 0; i < 3; i++){
+        cubeCorners[i].s[0] = (cl_float)m_transformedObject.x[cornerIndex[i]];
+        cubeCorners[i].s[1] = (cl_float)m_transformedObject.y[cornerIndex[i]];
+        cubeCorners[i].s[2] = (cl_float)m_transformedObject.z[cornerIndex[i]];
     }
+    cubeCorners[0].s[3] = (cl_float)m_transformedObject.x[cornerIndex[3]];
+    cubeCorners[1].s[3] = (cl_float)m_transformedObject.y[cornerIndex[3]];
+    cubeCorners[2].s[3] = (cl_float)m_transformedObject.z[cornerIndex[3]];
+
     clEnqueueWriteBuffer(*m_clQueue, m_clCubeCorners, CL_TRUE, 0, sizeof(cubeCorners),
                          cubeCorners, 0, NULL, NULL);
+}
+
+void GL_I3C_Element::enqueueSetPixels()
+{
+    // Loads pixels form m_frame to OCL memory
+    int numberOfPixels = m_frame->pixelArraySize;
+    cl_uchar4 *pixels = new cl_uchar4[numberOfPixels];
+    for(int i = 0; i < numberOfPixels; i++){
+        pixels[i].s[0] = m_frame->pixel[i].red;
+        pixels[i].s[1] = m_frame->pixel[i].green;
+        pixels[i].s[2] = m_frame->pixel[i].blue;
+        pixels[i].s[3] = 255;   // Alpha
+        //cout << m_frame->pixel[i].red << endl;
+    }
+    clEnqueueWriteBuffer(*m_clQueue, m_clPixels, CL_TRUE, 0, numberOfPixels*sizeof(cl_uchar4),
+                         pixels, 0, NULL, NULL);
+    delete[] pixels;
+}
+
+void GL_I3C_Element::enqueueSetChildId()
+{
+    int numberOfChildId = m_frame->cubeMapArraySize;
+    cl_uint *childId = new cl_uint[numberOfChildId];
+    for(int i = 0; i < numberOfChildId; i++){
+        childId[i] = m_frame->childCubeId[i];
+    }
+    cout << childId[0] << endl;
+    clEnqueueWriteBuffer(*m_clQueue, m_clChildId, CL_TRUE, 0, numberOfChildId*sizeof(cl_uint),
+                         childId, 0, NULL, NULL);
+    delete[] childId;
+}
+
+void GL_I3C_Element::enqueueSetCubeMaps()
+{
+    int numberOfMaps = m_frame->cubeMapArraySize;
+    cl_uchar *maps = new cl_uchar[numberOfMaps];
+    for(int i = 0; i < numberOfMaps; i++){
+        maps[i] = m_frame->cubeMap[i];
+    }
+    clEnqueueWriteBuffer(*m_clQueue, m_clCubesMap, CL_TRUE, 0, numberOfMaps*sizeof(cl_uchar),
+                         maps, 0, NULL, NULL);
+    delete[] maps;
 }
 
 void GL_I3C_Element::enqueueClearTexture()

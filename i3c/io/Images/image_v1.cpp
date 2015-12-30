@@ -30,6 +30,7 @@ int ImageV1::read(fstream* file, I3C_Frame* frame)
     //Levels
     m_i_totalMaps = 0;
     m_i_numberOfLevels = firstHighBit(m_i_sideSize);
+    frame->numberOfLevels = m_i_numberOfLevels;
     m_pi_mapsAtLevel = new int[m_i_numberOfLevels];
     for(int i = 0; i < m_i_numberOfLevels; i++)
     {
@@ -76,7 +77,9 @@ int ImageV1::readSideSize(fstream* file)
 int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
 {
     int error, pixelsInCube, totalPixels = 0, pixelOffset = 0;
-    unsigned char map, red, green, blue;
+    int red, green, blue;
+    unsigned char map;
+    int pixelIndexOffset = m_i_totalMaps - m_pi_mapsAtLevel[0];
 
     //Keep a marker in the file
     int marker = file->tellg();
@@ -132,8 +135,8 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
             frame->pixel[pixelOffset+j].green = (unsigned char)green;
             frame->pixel[pixelOffset+j].blue = (unsigned char)blue;
         }
-        frame->cubeMap[i] = map;
-        frame->childCubeId[i] = pixelOffset;
+        frame->cubeMap[pixelIndexOffset+i] = map;
+        frame->childCubeId[pixelIndexOffset+i] = pixelOffset;
 
         pixelOffset += pixelsInCube;
     }
@@ -145,18 +148,26 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
 int ImageV1::readParents(fstream* file, I3C_Frame* frame)
 {
     unsigned char map;
-    int error, numOfChild=0, offset=0;
+    int error, numOfChild, arrayOffset = m_i_totalMaps-1;
+    int offset = m_i_totalMaps;
 
     //Read the maps of each upper level
-    for(int i = m_pi_mapsAtLevel[0]; i < m_i_totalMaps; i++){
-        error = readMap(file, &map, &numOfChild);
-        if(error != I3C_SUCCESS){
-            return error;
+    for(int j = 0; j < m_i_numberOfLevels; j++){
+        arrayOffset = arrayOffset-m_pi_mapsAtLevel[j];
+        for(int i = m_pi_mapsAtLevel[j+1]-1; i >=0; i--){
+            error = readMap(file, &map, &numOfChild);
+            if(error != I3C_SUCCESS){
+                cout << "ERROR" << endl;
+                return error;
+            }
+            offset -= numOfChild;
+            frame->cubeMap[arrayOffset+i] = map;
+            frame->childCubeId[arrayOffset+i] = offset;
+            cout << arrayOffset+i << endl;
         }
-        frame->cubeMap[i] = map;
-        frame->childCubeId[i] = offset;
-        offset += numOfChild;
+
     }
+    cout << frame->childCubeId[2] << endl;
 
     return I3C_SUCCESS;
 }

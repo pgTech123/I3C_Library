@@ -78,7 +78,11 @@ private:
     void releaseGLTexture();
 
     void enqueueSetScreenBoundaries();
+    void enqueueSetNumberOfLevels();
     void enqueueSetCubeCorners();
+    void enqueueSetPixels();
+    void enqueueSetChildId();
+    void enqueueSetCubeMaps();
 
     void enqueueClearTexture();
     void enqueueRender();
@@ -121,6 +125,7 @@ private:
     //OpenCL image cube memory
     cl_mem m_clCubeCorners;
     cl_mem m_clObjectOffset;   //As the whole screen won't be rendered, specify where to start
+    cl_mem m_clNumberOfLevels;
 
     //OpenCL image/video memory
     cl_mem* m_clRenderingTexture;    //!!! THIS IS MANAGED OUTSIDE THIS CLASS: do not release

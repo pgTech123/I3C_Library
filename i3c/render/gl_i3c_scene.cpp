@@ -266,7 +266,10 @@ void GL_I3C_Scene::loadOCLProgram()
     loadOCLSources();
 
     m_program = clCreateProgramWithSource(m_context, 1, (const char **)&m_clSources,
-                                          (const size_t *)MAX_FILE_SIZE, NULL);
+                                          (const size_t *)MAX_FILE_SIZE, &error);
+    if(error != CL_SUCCESS){
+        cerr << "Error Opencl Sources: code " << error << endl;
+    }
     error = clBuildProgram(m_program, 1, &m_device, NULL, NULL, NULL);
 
     //Make sure the sources doesn't cause a mem leak
@@ -276,7 +279,32 @@ void GL_I3C_Scene::loadOCLProgram()
     }
 
     if(error != CL_SUCCESS){
-        cerr << "Compilation error..." << endl;
+        char *buff_erro;
+        cl_int errcode;
+        size_t build_log_len;
+        errcode = clGetProgramBuildInfo(m_program, m_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
+        if (errcode) {
+            cout << "clGetProgramBuildInfo failed at line " << __LINE__ << endl;
+            exit(-1);
+        }
+
+        buff_erro = new char[build_log_len];
+        if (!buff_erro) {
+            cout << "Error allocating build log array..." << __LINE__ << endl;
+            exit(-2);
+        }
+
+        errcode = clGetProgramBuildInfo(m_program, m_device, CL_PROGRAM_BUILD_LOG, build_log_len, buff_erro, NULL);
+        if (errcode) {
+            cout << "clGetProgramBuildInfo failed at line " << __LINE__ << endl;
+            exit(-3);
+        }
+
+        cout << " --- Build log: ---" << endl;
+        cerr << buff_erro << endl; //Be careful with  the fprint
+        delete[] buff_erro;
+        cout << endl << "clBuildProgram failed" << endl;
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -290,6 +318,7 @@ void GL_I3C_Scene::loadOCLSources()
         if (!kernelFile.is_open()){
             cerr << "Failed to open file for reading: " << FILES_TO_LOAD[i] << endl;
             cerr << "Abort..." << endl;
+            exit(EXIT_FAILURE);
             return;
         }
         oss << kernelFile.rdbuf();
