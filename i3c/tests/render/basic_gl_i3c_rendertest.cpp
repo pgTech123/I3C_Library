@@ -32,8 +32,12 @@ void Basic_GL_I3C_RenderTest::initializeGL()
     this->generateFBO(this->width(), this->height());
     m_GLI3CScene->setRenderingTextures(m_renderedTexture, m_depthTexture);
 
-    //Add element to scene
+    //Add & remove element to scene (partly tests :P)
     m_GLI3CElement->setTransform(1,1,6);
+    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+    m_GLI3CScene->retreiveAll();
+    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+    m_GLI3CScene->retreiveI3CElement(m_GLI3CElement);
     m_GLI3CScene->addI3CElement(m_GLI3CElement);
 
     //Compile shaders
@@ -98,6 +102,9 @@ void Basic_GL_I3C_RenderTest::paintGL()
 
 void Basic_GL_I3C_RenderTest::stopGL()
 {
+    //Make sure nothing is running anymore on GPU
+    m_GLI3CScene->stopRender();
+
     //Clear memory
     m_vertexArrayObject.release();
     glDeleteProgram(m_glProgramRtT);

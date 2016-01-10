@@ -26,12 +26,19 @@ bool GL_I3C_Element::loadFile(const char* filename)
     m_fileLoaded = false;
 
     //Open the file
-    if(m_i3cFile.open(filename)==I3C_SUCCESS){
+    int error = m_i3cFile.open(filename);
+    if(error == I3C_SUCCESS){
         m_fileLoaded = true;
 
         //Make sure to not override an existing pointer
         this->delete_m_Frame();
         m_frame = new I3C_Frame();
+
+        //Get the space needed
+        m_i3cFile.read(m_frame);
+    }
+    else{
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- loadFile(): could not open..." << endl;
     }
 
     //If an OpenCL context is available, load the image on GPU
@@ -100,6 +107,7 @@ void GL_I3C_Element::setViewTransformMatrix(Mat4x4* transformMatrix)
 
 bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_command_queue* queue)
 {
+    cl_int error;
     //Make sure to not overide an existing context
     if(m_OCLContextIsSet){
         return false;
@@ -111,10 +119,22 @@ bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_
     m_OCLContextIsSet = true;
 
     //Creation of the kernels
-    m_clRenderingKernel = clCreateKernel(*program, "render", NULL);
-    m_clClearTextureKernel = clCreateKernel(*program, "clearTexture", NULL);    //DEBUG ONLY
-    m_clClearKernel = clCreateKernel(*program, "clearMemoryBit", NULL);
-    m_clLoadVideoBufferKernel = clCreateKernel(*program, "loadVideoBuffer", NULL);
+    m_clRenderingKernel = clCreateKernel(*program, "render", &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel Render..." << endl;
+    }
+    m_clClearTextureKernel = clCreateKernel(*program, "clearTexture", &error);    //DEBUG ONLY
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel clearTexture..." << endl;
+    }
+    m_clClearKernel = clCreateKernel(*program, "clearMemoryBit", &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel clearMemBit..." << endl;
+    }
+    m_clLoadVideoBufferKernel = clCreateKernel(*program, "loadVideoBuffer", &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel loadVideoBuffer..." << endl;
+    }
     //TODO: Create other kernels here
 
     //If a file was already specified, load it
@@ -126,9 +146,13 @@ bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_
 
 void GL_I3C_Element::resetOCLContext()
 {
+    m_OCLContextIsSet = false;
     this->pause();          //Stop streaming
     this->deleteCLMemObj();
-    this->initElement();
+
+    //Re-init
+    this->initCLMemObj();
+    this->initTransformMat();
 }
 
 void GL_I3C_Element::setScreenSize(int w, int h)
@@ -139,29 +163,37 @@ void GL_I3C_Element::setScreenSize(int w, int h)
 
 void GL_I3C_Element::setTextures(cl_mem* renderingTexture, cl_mem* depthMap)
 {
+    cl_int error;
     m_clRenderingTexture = renderingTexture;
     m_clDepthMap = depthMap;
 
     //TODO: set Arguments
-    clSetKernelArg(m_clRenderingKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture);
-    clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture); //DEBUG ONLY
+    error = clSetKernelArg(m_clRenderingKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel rendering..." << endl;
+    }
+    error = clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture); //DEBUG ONLY
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel clearTexture..." << endl;
+    }
 
     m_texturesSpecified = true;
 }
 
 void GL_I3C_Element::render()
 {
-    if(m_texturesSpecified){
+    if(m_texturesSpecified && m_OCLContextIsSet && m_fileLoaded){
+        this->acquireGLTexture();
         //Compute object transform
+        //FIXME: move so that it's computed after acquire and clear are enqueued
         computeTransform(&m_originalCoord, &m_transformedObject, m_transformMatrix);
         projectObject(&m_transformedObject, &m_ObjectBoundOnScreen, m_screenWidth, m_screenHeight);
-
-        this->acquireGLTexture();
 
         //IF position exactly = to last position, do not clear precomputed cube positions
 
         //Clear previous texture
         this->enqueueClearTexture();
+        this->enqueueClearMemoryBit();
 
         //Actual rendering
         this->enqueueSetScreenBoundaries();
@@ -199,37 +231,85 @@ void GL_I3C_Element::initTransformMat()
 
 void GL_I3C_Element::prepareOCL()
 {
+    cl_int error;
     if(m_frame == NULL){
         return;
     }
-
-    //Get the space needed
-    m_i3cFile.read(m_frame);
 
     //Clear mem previously allocated
     this->releaseArguments();
 
     //Allocate memory
+    //Sorry... error monitoring makes this function really ugly...
     m_clPixels = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                   m_frame->pixelArraySize*sizeof(cl_char4), NULL, NULL);
+                                   m_frame->pixelArraySize*sizeof(cl_char4), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clPixels..." << endl;
+    }
     m_clCubesMap = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                   m_frame->cubeMapArraySize*sizeof(cl_char), NULL, NULL);
+                                   m_frame->cubeMapArraySize*sizeof(cl_char), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clCubesMap..." << endl;
+    }
     m_clChildId = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                   m_frame->cubeMapArraySize*sizeof(cl_uint), NULL, NULL);
+                                   m_frame->cubeMapArraySize*sizeof(cl_uint), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clChildId..." << endl;
+    }
     m_clCubeCorners = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
-                                   m_frame->cubeMapArraySize*3*sizeof(cl_float4), NULL, NULL);
+                                   m_frame->cubeMapArraySize*3*sizeof(cl_float4), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clCubeCorners..." << endl;
+    }
 
     //Allocate fixed size memory
-    m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_int2), NULL, NULL);
-    m_clNumberOfLevels = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_uint), NULL, NULL);
+    m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_int2), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clObjectOffset..." << endl;
+    }
+    m_clNumberOfLevels = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_uint), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clNumberOfLevels..." << endl;
+    }
+    m_clTopCubeId = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_uint), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clTopCubeId..." << endl;
+    }
 
     //Set Args
-    clSetKernelArg(m_clRenderingKernel, 1, sizeof(m_clObjectOffset), &m_clObjectOffset);
-    clSetKernelArg(m_clRenderingKernel, 2, sizeof(m_clPixels), &m_clPixels);
-    clSetKernelArg(m_clRenderingKernel, 3, sizeof(m_clCubesMap), &m_clCubesMap);
-    clSetKernelArg(m_clRenderingKernel, 4, sizeof(m_clChildId), &m_clChildId);
-    clSetKernelArg(m_clRenderingKernel, 5, sizeof(m_clCubeCorners), &m_clCubeCorners);
-    clSetKernelArg(m_clRenderingKernel, 6, sizeof(m_clNumberOfLevels), &m_clNumberOfLevels);
+    error = clSetKernelArg(m_clRenderingKernel, 1, sizeof(m_clObjectOffset), &m_clObjectOffset);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clObjectOffset..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 2, sizeof(m_clPixels), &m_clPixels);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clPixels..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 3, sizeof(m_clCubesMap), &m_clCubesMap);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clCubesMap..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 4, sizeof(m_clChildId), &m_clChildId);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clChildId..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 5, sizeof(m_clCubeCorners), &m_clCubeCorners);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clCubeCorners..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 6, sizeof(m_clNumberOfLevels), &m_clNumberOfLevels);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clNumberOfLevels..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 7, sizeof(m_clTopCubeId), &m_clTopCubeId);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clTopCubeId..." << endl;
+    }
+
+    error = clSetKernelArg(m_clClearKernel, 0, sizeof(m_clChildId), &m_clChildId);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clChildId..." << endl;
+    }
 
     //Allocate video memory
     if(m_i3cFile.isVideoFile()){
@@ -251,6 +331,7 @@ void GL_I3C_Element::loadFrameOCL()
         enqueueSetPixels();
         enqueueSetChildId();
         enqueueSetCubeMaps();
+        enqueueSetTopCubeId();
     }
     else if(m_i3cFile.isVideoFile()){
         //TODO
@@ -283,67 +364,116 @@ void GL_I3C_Element::initCLMemObj()
     m_clDiffChildId = NULL;
     m_clObjectOffset = NULL;
     m_clNumberOfLevels = NULL;
+    m_clTopCubeId = NULL;
 }
 
 void GL_I3C_Element::releaseKernels()
 {
+    cl_int error;
     //Release Kernels
     if(m_clRenderingKernel != NULL){
-        clReleaseKernel(m_clRenderingKernel);
+        error = clReleaseKernel(m_clRenderingKernel);
         m_clRenderingKernel = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clRenderingKernel..." << endl;
+        }
     }
     if(m_clClearKernel != NULL){
-        clReleaseKernel(m_clClearKernel);
+        error = clReleaseKernel(m_clClearKernel);
         m_clClearKernel = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clClearKernel..." << endl;
+        }
     }
     if(m_clLoadVideoBufferKernel != NULL){
-        clReleaseKernel(m_clLoadVideoBufferKernel);
+        error = clReleaseKernel(m_clLoadVideoBufferKernel);
         m_clLoadVideoBufferKernel = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clLoadVideoBufferKernel..." << endl;
+        }
     }
     if(m_clClearTextureKernel != NULL){     //DEBUG ONLY
-        clReleaseKernel(m_clClearTextureKernel);
+        error = clReleaseKernel(m_clClearTextureKernel);
         m_clClearTextureKernel = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clClearTextureKernel..." << endl;
+        }
     }
 }
 
 void GL_I3C_Element::releaseArguments()
 {
+    cl_int error;
     //Release Argiments
     if(m_clCubeCorners != NULL){
-        clReleaseMemObject(m_clCubeCorners);
+        error = clReleaseMemObject(m_clCubeCorners);
         m_clCubeCorners = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clCubeCorners..." << endl;
+        }
     }
     if(m_clPixels != NULL){
-        clReleaseMemObject(m_clPixels);
+        error = clReleaseMemObject(m_clPixels);
         m_clPixels = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clPixels..." << endl;
+        }
     }
     if(m_clCubesMap != NULL){
-        clReleaseMemObject(m_clCubesMap);
+        error = clReleaseMemObject(m_clCubesMap);
         m_clCubesMap = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clCubesMap..." << endl;
+        }
     }
     if(m_clChildId != NULL){
-        clReleaseMemObject(m_clChildId);
+        error = clReleaseMemObject(m_clChildId);
         m_clChildId = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clChildId..." << endl;
+        }
     }
     if(m_clDiffPixels != NULL){
-        clReleaseMemObject(m_clDiffPixels);
+        error = clReleaseMemObject(m_clDiffPixels);
         m_clDiffPixels = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clDiffPixels..." << endl;
+        }
     }
     if(m_clDiffCubesMap != NULL){
-        clReleaseMemObject(m_clDiffCubesMap);
+        error = clReleaseMemObject(m_clDiffCubesMap);
         m_clDiffCubesMap = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clDiffCubesMap..." << endl;
+        }
     }
     if(m_clDiffChildId != NULL){
-        clReleaseMemObject(m_clDiffChildId);
+        error = clReleaseMemObject(m_clDiffChildId);
         m_clDiffChildId = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clDiffChildId..." << endl;
+        }
     }
     if(m_clObjectOffset != NULL){
-        clReleaseMemObject(m_clObjectOffset);
+        error = clReleaseMemObject(m_clObjectOffset);
         m_clObjectOffset = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clObjectOffset..." << endl;
+        }
     }
     if(m_clNumberOfLevels != NULL){
-        clReleaseMemObject(m_clNumberOfLevels);
+        error = clReleaseMemObject(m_clNumberOfLevels);
         m_clNumberOfLevels = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clNumberOfLevels..." << endl;
+        }
+    }
+    if(m_clTopCubeId != NULL){
+        error = clReleaseMemObject(m_clTopCubeId);
+        m_clTopCubeId = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clTopCubeId..." << endl;
+        }
     }
 }
 
@@ -375,16 +505,22 @@ void GL_I3C_Element::acquireGLTexture()
     glFinish(); //FIXME: IMPROVE THAT...
     cl_int error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
     if(error != CL_SUCCESS){
-        cout << "Error aquiring the texture..." << endl;
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- acquireGLTexture(): could not acquireGLTexture..." << endl;
+        exit(-1);
     }
 }
 
 void GL_I3C_Element::releaseGLTexture()
 {
-    clFinish(*m_clQueue);
-    cl_int error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
+    cl_int error;
+    error = clFinish(*m_clQueue);
     if(error != CL_SUCCESS){
-        cout << "Error releasing texture..." << endl;
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseGLTexture(): could not clFinish..." << endl;
+    }
+    error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseGLTexture(): could not releaseGLTexture..." << endl;
+        exit(-1);
     }
 }
 
@@ -394,16 +530,36 @@ void GL_I3C_Element::enqueueSetScreenBoundaries()
     cl_int2 objectScreenOffset;
     objectScreenOffset.s[0] = (cl_int)m_ObjectBoundOnScreen.x;
     objectScreenOffset.s[1] = (cl_int)m_ObjectBoundOnScreen.y;
-    clEnqueueWriteBuffer(*m_clQueue, m_clObjectOffset, CL_TRUE, 0, sizeof(objectScreenOffset),
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clObjectOffset, CL_TRUE, 0, sizeof(objectScreenOffset),
                          &objectScreenOffset, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetScreenBoundaries(): could not enqueueSetScreenBoundaries..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueSetNumberOfLevels()
 {
     cl_uint numberOfLevels;
     numberOfLevels = (cl_uint)m_frame->numberOfLevels;
-    clEnqueueWriteBuffer(*m_clQueue, m_clNumberOfLevels, CL_TRUE, 0, sizeof(numberOfLevels),
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clNumberOfLevels, CL_TRUE, 0, sizeof(numberOfLevels),
                          &numberOfLevels, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetNumberOfLevels(): could not enqueueSetNumberOfLevels..." << endl;
+        exit(-1);
+    }
+}
+
+void GL_I3C_Element::enqueueSetTopCubeId()
+{
+    cl_uint topCubeId;
+    topCubeId = (cl_uint)m_frame->cubeMapArraySize-1;
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clTopCubeId, CL_TRUE, 0, sizeof(topCubeId),
+                         &topCubeId, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetTopCubeId(): could not enqueueSetTopCubeId..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueSetCubeCorners()
@@ -419,8 +575,12 @@ void GL_I3C_Element::enqueueSetCubeCorners()
     cubeCorners[1].s[3] = (cl_float)m_transformedObject.y[cornerIndex[3]];
     cubeCorners[2].s[3] = (cl_float)m_transformedObject.z[cornerIndex[3]];
 
-    clEnqueueWriteBuffer(*m_clQueue, m_clCubeCorners, CL_TRUE, 0, sizeof(cubeCorners),
-                         cubeCorners, 0, NULL, NULL);
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clCubeCorners, CL_TRUE, (m_frame->cubeMapArraySize-1) * sizeof(cubeCorners),
+                                        sizeof(cubeCorners), cubeCorners, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetCubeCorners(): could not enqueueSetCubeCorners..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueSetPixels()
@@ -435,9 +595,14 @@ void GL_I3C_Element::enqueueSetPixels()
         pixels[i].s[3] = 255;   // Alpha
         //cout << m_frame->pixel[i].red << endl;
     }
-    clEnqueueWriteBuffer(*m_clQueue, m_clPixels, CL_TRUE, 0, numberOfPixels*sizeof(cl_uchar4),
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clPixels, CL_TRUE, 0, numberOfPixels*sizeof(cl_uchar4),
                          pixels, 0, NULL, NULL);
     delete[] pixels;
+
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetPixels(): could not enqueueSetPixels..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueSetChildId()
@@ -447,10 +612,13 @@ void GL_I3C_Element::enqueueSetChildId()
     for(int i = 0; i < numberOfChildId; i++){
         childId[i] = m_frame->childCubeId[i];
     }
-    cout << childId[0] << endl;
-    clEnqueueWriteBuffer(*m_clQueue, m_clChildId, CL_TRUE, 0, numberOfChildId*sizeof(cl_uint),
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clChildId, CL_TRUE, 0, numberOfChildId*sizeof(cl_uint),
                          childId, 0, NULL, NULL);
     delete[] childId;
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetChildId(): could not enqueueSetChildId..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueSetCubeMaps()
@@ -460,9 +628,26 @@ void GL_I3C_Element::enqueueSetCubeMaps()
     for(int i = 0; i < numberOfMaps; i++){
         maps[i] = m_frame->cubeMap[i];
     }
-    clEnqueueWriteBuffer(*m_clQueue, m_clCubesMap, CL_TRUE, 0, numberOfMaps*sizeof(cl_uchar),
+    cl_int error = clEnqueueWriteBuffer(*m_clQueue, m_clCubesMap, CL_TRUE, 0, numberOfMaps*sizeof(cl_uchar),
                          maps, 0, NULL, NULL);
     delete[] maps;
+
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueSetCubeMaps(): could not enqueueSetCubeMaps..." << endl;
+        exit(-1);
+    }
+}
+
+void GL_I3C_Element::enqueueClearMemoryBit()
+{
+    size_t wi_clear[1] = {m_frame->cubeMapArraySize};
+    cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clClearKernel, 1, NULL,
+                                          wi_clear , NULL, 0, NULL, NULL);
+
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueClearMemoryBit(): could not enqueueClearMemoryBit..." << endl;
+        exit(-1);
+    }
 }
 
 void GL_I3C_Element::enqueueClearTexture()
@@ -470,9 +655,9 @@ void GL_I3C_Element::enqueueClearTexture()
     size_t wi_clear[2] = {m_screenWidth, m_screenHeight};
     cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clClearTextureKernel, 2, NULL,
                                           wi_clear , NULL, 0, NULL, NULL);
-
     if(error != CL_SUCCESS){
-        cout << "Error Clearing the texture" << endl;
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueClearTexture(): could not enqueueClearTexture..." << endl;
+        exit(-1);
     }
 }
 
@@ -482,10 +667,8 @@ void GL_I3C_Element::enqueueRender()
     size_t wi[2] = {m_ObjectBoundOnScreen.w, m_ObjectBoundOnScreen.h};
     cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clRenderingKernel, 2, NULL,
                                           wi , NULL, 0, NULL, NULL);
-    if(error == CL_INVALID_KERNEL_ARGS){
-        cout << "Invalid Arg" << endl;
-    }
-    else if(error != CL_SUCCESS){
-        cout << "Error Rendering" << endl;
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueRender(): could not enqueueRender..." << endl;
+        exit(-1);
     }
 }

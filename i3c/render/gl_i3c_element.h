@@ -17,6 +17,7 @@
 
 #include "../io/i3c_read.h"
 #include "i3c_transform.h"
+#include "./../utils/logs.h"
 
 
 #define VIDEO_BUFFER_SIZE   4
@@ -79,11 +80,13 @@ private:
 
     void enqueueSetScreenBoundaries();
     void enqueueSetNumberOfLevels();
+    void enqueueSetTopCubeId();
     void enqueueSetCubeCorners();
     void enqueueSetPixels();
     void enqueueSetChildId();
     void enqueueSetCubeMaps();
 
+    void enqueueClearMemoryBit();
     void enqueueClearTexture();
     void enqueueRender();
 
@@ -126,6 +129,7 @@ private:
     cl_mem m_clCubeCorners;
     cl_mem m_clObjectOffset;   //As the whole screen won't be rendered, specify where to start
     cl_mem m_clNumberOfLevels;
+    cl_mem m_clTopCubeId;
 
     //OpenCL image/video memory
     cl_mem* m_clRenderingTexture;    //!!! THIS IS MANAGED OUTSIDE THIS CLASS: do not release

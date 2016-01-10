@@ -25,6 +25,7 @@
 #include "gl_i3c_element.h"
 #include "./../i3c.h"
 #include "i3c_transform.h"
+#include "./../utils/logs.h"
 
 
 
@@ -67,7 +68,7 @@ public:
 
     //This function inits the OpenCL context, on the same device as the OpenGL context.
     //This function MUST be called before anything else in this class
-    void attachGLContext(HDC hDC, HGLRC hRC);
+    int attachGLContext(HDC hDC, HGLRC hRC);
 
     //Returns true if the OCL context was created, and returns false if an error occured.
     bool isUpAndRunning();

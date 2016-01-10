@@ -79,7 +79,6 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
     int error, pixelsInCube, totalPixels = 0, pixelOffset = 0;
     int red, green, blue;
     unsigned char map;
-    int pixelIndexOffset = m_i_totalMaps - m_pi_mapsAtLevel[0];
 
     //Keep a marker in the file
     int marker = file->tellg();
@@ -105,7 +104,7 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
     frame->pixel = new Pixel[totalPixels];
 
     //Read a second time for data
-    //Depending of the OS, line ends with \r\n or \n. To be able to
+    //Depending on the OS, line ends with \r\n or \n. To be able to
     //read aby of these files, we rewind of 16 bits and we read til we
     //find a line that contains only '1'.
     file->seekg(marker-16);
@@ -135,8 +134,8 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
             frame->pixel[pixelOffset+j].green = (unsigned char)green;
             frame->pixel[pixelOffset+j].blue = (unsigned char)blue;
         }
-        frame->cubeMap[pixelIndexOffset+i] = map;
-        frame->childCubeId[pixelIndexOffset+i] = pixelOffset;
+        frame->cubeMap[i] = map;
+        frame->childCubeId[i] = pixelOffset;
 
         pixelOffset += pixelsInCube;
     }
@@ -148,27 +147,32 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
 int ImageV1::readParents(fstream* file, I3C_Frame* frame)
 {
     unsigned char map;
-    int error, numOfChild, arrayOffset = m_i_totalMaps-1;
-    int offset = m_i_totalMaps;
+    int error, numOfChild = 0, offset = 0, index = m_pi_mapsAtLevel[0];
 
     //Read the maps of each upper level
-    for(int j = 0; j < m_i_numberOfLevels; j++){
-        arrayOffset = arrayOffset-m_pi_mapsAtLevel[j];
-        for(int i = m_pi_mapsAtLevel[j+1]-1; i >=0; i--){
+    for(int level = 1; level < m_i_numberOfLevels; level++){
+        for(int i = 0; i < m_pi_mapsAtLevel[level]; i++)
+        {
             error = readMap(file, &map, &numOfChild);
             if(error != I3C_SUCCESS){
-                cout << "ERROR" << endl;
+                cerr << "ERROR: Reading parents" << endl;
                 return error;
             }
-            offset -= numOfChild;
-            frame->cubeMap[arrayOffset+i] = map;
-            frame->childCubeId[arrayOffset+i] = offset;
-            cout << arrayOffset+i << endl;
+
+            //cout << offset << endl;   //DEBUG
+            //cout << index << endl;    //DEBUG
+            frame->cubeMap[index] = map;
+            frame->childCubeId[index] = offset;
+            index++;
+            offset += numOfChild;
         }
 
     }
-    cout << frame->childCubeId[2] << endl;
 
+    //DEBUG
+    /*for(int i = 0; i < m_i_totalMaps; i++){
+        cout << frame->childCubeId[i] << endl;
+    }*/
     return I3C_SUCCESS;
 }
 

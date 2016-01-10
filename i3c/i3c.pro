@@ -55,7 +55,8 @@ HEADERS += \
     tests/tests.h \
     tests/render/gl_window.h \
     tests/render/basic_gl_i3c_rendertest.h \
-    render/i3c_transform.h
+    render/i3c_transform.h \
+    utils/logs.h
 
 DISTFILES += \
     render/cl_sources/video.cl\

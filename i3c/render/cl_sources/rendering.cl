@@ -5,7 +5,7 @@
 
 
 #define SCALE_FACTOR    1000    //Must fit SCALE_FACTOR in 'i3c_transform.h'
-
+#define STACK_SIZE      88      //Enough for images size: 2048 x 2048 x 2048
 
 //-----------------------------------------------------------------
 //
@@ -204,6 +204,36 @@ bool lockIfNotAlready(__global uint* memoryWithLockBit, int index)
 }
 
 
+
+//-----------------------------------------------------------------
+//
+//                        PIXELS FUNCTIONS
+//
+//--------------------------------------------------------------
+
+void push(  __private char levelStackPtr[],
+            __private int idStackPtr[],
+            __private char* stackPtr,
+            __private char level,
+            __private int id)
+{
+    levelStackPtr[*stackPtr] = level;   //Push Level
+    idStackPtr[*stackPtr] = id;         //Push Index
+    (*stackPtr)++;
+}
+
+void pop(   __private char levelStackPtr[],
+            __private int idStackPtr[],
+            __private char* stackPtr,
+            __private char* level,
+            __private int* id)
+{
+    (*stackPtr)--;
+    (*level) = levelStackPtr[*stackPtr];    //Pop Level
+    (*id) = idStackPtr[*stackPtr];          //Pop Index
+}
+
+
 //-----------------------------------------------------------------
 //
 //                CHILDREN COMPUTATION FUNCTIONS
@@ -223,44 +253,52 @@ bool lockIfNotAlready(__global uint* memoryWithLockBit, int index)
  *            (_pt 1)       (_pt 2)          -|-------> x
  *
  */
-void updateChildPosition( __global float4 *cubesStorage, __global uint *memoryLock, int offsetParent,
-                          int offsetFirstChild, char map)
+void updateChildPosition( __global float4 *cubesStorage, __global volatile uint *memoryLock, int offsetParent,
+                          int offsetFirstChild, char map, __private char stack_level[], __private int stack_id[],
+                          __private char* stackPtr, __private char level)
 {
     //If was already lock, someone else is computing it so we wait for the result
     if(!lockIfNotAlready(memoryLock, offsetParent)){
         //while((memoryLock[offsetParent] & 0x80000000) == 0){}
         //return;
     }
+    int offsetParent_3 = 3 * offsetParent;
+    int offsetFirstChild_3 = 3*offsetFirstChild;
 
     // 1 - Get pt3
     float3 pt3;
     float3 newPt3;
-    pt3.x = cubesStorage[offsetParent+0].w;
-    pt3.y = cubesStorage[offsetParent+1].w;
-    pt3.z = cubesStorage[offsetParent+2].w;
+    pt3.x = cubesStorage[offsetParent_3+0].w;
+    pt3.y = cubesStorage[offsetParent_3+1].w;
+    pt3.z = cubesStorage[offsetParent_3+2].w;
 
     // 2 - Split arrays in 2
     float3 xVector, yVector, zVector;   // x,y,z -> cube axis
-    xVector = (cubesStorage[offsetParent+2].xyz - cubesStorage[offsetParent+1].xyz)/2;
-    yVector = (cubesStorage[offsetParent+0].xyz - cubesStorage[offsetParent+1].xyz)/2;
-    zVector = (pt3 - cubesStorage[offsetParent+1].xyz)/2;
+    xVector = (cubesStorage[offsetParent_3+2].xyz - cubesStorage[offsetParent_3+1].xyz)/2;
+    yVector = (cubesStorage[offsetParent_3+0].xyz - cubesStorage[offsetParent_3+1].xyz)/2;
+    zVector = (pt3 - cubesStorage[offsetParent_3+1].xyz)/2;
 
     // 3 - According to map, write child
     const char xBool[8] = {0, 1, 0, 1, 0, 1, 0, 1};
     const char yBool[8] = {1, 1, 0, 0, 1, 1, 0, 0};
     const char zBool[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    char cubeNumber = 0;
     for(char i = 0; i < 8; i++){
         if(map & (0x01 << i)){
         //FIXME: Optimisation to do here...
-            char localOffset = 3*i;
-            cubesStorage[offsetFirstChild+ localOffset +0].xyz = cubesStorage[offsetParent+1].xyz + yVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
-            cubesStorage[offsetFirstChild+ localOffset +1].xyz = cubesStorage[offsetParent+1].xyz +           xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
-            cubesStorage[offsetFirstChild+ localOffset +2].xyz = cubesStorage[offsetParent+1].xyz + xVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
-            newPt3 = cubesStorage[offsetParent+1].xyz + zVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
+            char localOffset = 3*cubeNumber;
+            cubesStorage[offsetFirstChild_3+ localOffset +0].xyz = cubesStorage[offsetParent_3+1].xyz + yVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
+            cubesStorage[offsetFirstChild_3+ localOffset +1].xyz = cubesStorage[offsetParent_3+1].xyz +           xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
+            cubesStorage[offsetFirstChild_3+ localOffset +2].xyz = cubesStorage[offsetParent_3+1].xyz + xVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
+            newPt3 = cubesStorage[offsetParent_3+1].xyz + zVector + xVector*xBool[i] + yVector*yBool[i] + zVector*zBool[i];
 
-            cubesStorage[offsetFirstChild+ localOffset +0].w = newPt3.x;
-            cubesStorage[offsetFirstChild+ localOffset +1].w = newPt3.y;
-            cubesStorage[offsetFirstChild+ localOffset +2].w = newPt3.z;
+            cubesStorage[offsetFirstChild_3+ localOffset +0].w = newPt3.x;
+            cubesStorage[offsetFirstChild_3+ localOffset +1].w = newPt3.y;
+            cubesStorage[offsetFirstChild_3+ localOffset +2].w = newPt3.z;
+
+            //Push TODO: Depending on dst...
+            push(stack_level, stack_id, &stackPtr, level, offsetFirstChild+cubeNumber);
+            cubeNumber++;
         }
     }
 
@@ -327,7 +365,14 @@ bool isInBoundingRect(const int4 boundingRect, const int2 imgCoord)
 //                        PIXELS FUNCTIONS
 //
 //-----------------------------------------------------------------
+
 //TODO: char4 HSV2RGB()
+
+void drawPixelCube(/*TODO*/)
+{
+    //TODO
+}
+
 
 
 
@@ -341,16 +386,22 @@ __kernel void render(   __write_only image2d_t texture,
                         __global int2 *screenOffset,
                         __global uchar4 *pixels,
                         __global uchar *cubeMap,
-                        __global uint *childId, // 2 MSB reserved for locks
+                        __global volatile uint *childId, // 2 MSB reserved for locks
                         __global float4 *cubeCorners,
-                        __global uint *maxNumOfLevelPtr)
+                        __global uint *maxNumOfLevelPtr,
+                        __global uint *topCubeIdPtr)
 {
-    int currentCubeId = 0;       //Start by the beginning
-    int childCubeId = childId[currentCubeId] & 0x3FFFFFFF;  //Remove status bits
+    int  currentCubeId = topCubeIdPtr[0];       //Start by the beginning
+    int  childCubeId = childId[currentCubeId] & 0x3FFFFFFF;  //Remove status bits
     int4 boundingRect;
-    uint maxNumOfLevel = maxNumOfLevelPtr[0];
+    uint topLevel = maxNumOfLevelPtr[0]-1;
     int2 pixelCoord = (int2)( get_global_id(0) + screenOffset[0].x,
                               get_global_id(1) + screenOffset[0].y);
+
+    //Stack parameters
+    char stackPtr = 0;
+    char stack_level[STACK_SIZE];
+    int  stack_id[STACK_SIZE];
 
     //DEBUG: Work item size
     if(get_global_id(0) %2){
@@ -359,31 +410,48 @@ __kernel void render(   __write_only image2d_t texture,
     }
 
     //Actual magic happens here
-    for(int i = 0; i < maxNumOfLevel; i++){
-        boundingRect = getPixelBoundingRect(&cubeCorners[currentCubeId], 0);
+    for(char level = topLevel; level >= 0; level--){ //We compute where child cubes are starting withe the biggest one
+        //We get bounding rect of the cube
+        boundingRect = getPixelBoundingRect(&cubeCorners[currentCubeId*3], 0);
 
-        //TODO: push on stack depending on dst
-        if(!isInBoundingRect(boundingRect, pixelCoord) ){
-            //TODO: COMPUTE SOMETHING ELSE
-            return; //Temporary
+        //If not seen, pop next probable cube
+     /*   if(!isInBoundingRect(boundingRect, pixelCoord) ){
+            if(stackPtr == 0){    return;    }  //Not seen and no other possibilities
+            pop(stack_level, stack_id, &stackPtr, &level, &currentCubeId);  //POP: FIXME: apporte de la granularite???
+            currentCubeId = currentCubeId & 0x3FFFFFFF;
+            childCubeId = childId[currentCubeId] & 0x3FFFFFFF;  //Remove status bits
+            continue;
+        }*/
+
+        //If pixel cube, we draw it
+        if(level == 8){
+            //drawPixelCube(TODO);
+            //float4 pixelValue = (float4)(1.0, 1.0, 1.0, 1.0 );
+            float4 pixelValue = (float4)((float)pixels[0].x/255, (float)pixels[0].y/255, (float)pixels[0].z/255, 1.0 );
+            write_imagef(texture, pixelCoord, pixelValue);
+            return;
         }
 
-        updateChildPosition(cubeCorners, childId, currentCubeId, 3 * childCubeId, 255/*cubeMap[currentCubeId]*/);
-        //TODO: update current cube ID and child ID
+        //If not pixel cube:
+        updateChildPosition(cubeCorners, childId, currentCubeId, childCubeId, cubeMap[currentCubeId],
+                            stack_level, stack_id, &stackPtr, level);
+
+        //Pop last and update IDs
+        pop(stack_level, stack_id, &stackPtr, &level, &currentCubeId);
+        currentCubeId = currentCubeId & 0x3FFFFFFF;
+        childCubeId = childId[currentCubeId] & 0x3FFFFFFF;
     }
 
-    for(int i = 1; i < 9; i++){
+    /*for(int i = 1; i < 9; i++){
         boundingRect = getPixelBoundingRect(&cubeCorners[i*3], 0);
         if(isInBoundingRect(boundingRect, pixelCoord) ){
             //float4 pixelValue = (float4)(1.0, 5.0, 0.5, 1.0);
             int tmp= 0;
             float4 pixelValue = (float4)(1.0/i, 1.0/i, 1.0/i, 1.0 );
-            /*float4 pixelValue = (float4)((float)pixels[tmp].x/255, (float)pixels[tmp].y/255,
-                                         (float)pixels[tmp].z/255, 1.0 );*/
             write_imagef(texture, pixelCoord, pixelValue);
             return;
         }
-    }
+    }*/
 }
 
 
