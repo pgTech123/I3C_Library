@@ -458,7 +458,7 @@ __kernel void render(   __write_only image2d_t texture,
 // CLEARS THE TEXTURE
 __kernel void clearTexture(__write_only image2d_t texture)
 {
-    int2 pixelCoord = (int2)( get_global_id(0), get_global_id(1));
+    /*int2 pixelCoord = (int2)( get_global_id(0), get_global_id(1));
     float4 pixelValue = (float4)(0.0, 0.0, 0.0, 1.0);
-    write_imagef(texture, pixelCoord, pixelValue);
+    write_imagef(texture, pixelCoord, pixelValue);*/
 }

@@ -22,27 +22,19 @@ void Basic_GL_I3C_RenderTest::initializeGL()
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
 
-    //Attach the opengl context to an I3C scene
-    m_GLI3CScene->attachGLContext(wglGetCurrentDC(), wglGetCurrentContext());
-    if(!m_GLI3CScene->isUpAndRunning()){
-        cerr << "An error occured in the creation of an OpenCL context..." << endl;
-    }
+    //Attach GL context to I3C
+    this->GL_I3C_init();
 
     //Prepare textures on which we will render on
     this->generateFBO(this->width(), this->height());
     m_GLI3CScene->setRenderingTextures(m_renderedTexture, m_depthTexture);
 
-    //Add & remove element to scene (partly tests :P)
-    m_GLI3CElement->setTransform(1,1,6);
-    m_GLI3CScene->addI3CElement(m_GLI3CElement);
-    m_GLI3CScene->retreiveAll();
-    m_GLI3CScene->addI3CElement(m_GLI3CElement);
-    m_GLI3CScene->retreiveI3CElement(m_GLI3CElement);
-    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+    //Setup I3C scene on top of GL 'scene'
+    this->setI3CScene();
 
     //Compile shaders
-    m_glProgramRtT = compileShaders(vertex_shader_sources_basic_test, fragment_shader_sources_basic_test);
-    m_glProgramDisplayTexture = compileShaders(vertex_shader_RtT, fragment_shader_RtT);
+    m_glProgramRenderGLtoTexture = compileShaders(VS_renderTriangleToTexture, FS_renderTriangleToTexture);
+    m_glProgramDisplayTexture = compileShaders(VS_renderTextureOnScreen, FS_renderTextureOnScreen);
 
     m_vertexArrayObject.create();
     m_vertexArrayObject.bind();
@@ -58,46 +50,13 @@ void Basic_GL_I3C_RenderTest::resizeGL(int w, int h)
 
 void Basic_GL_I3C_RenderTest::paintGL()
 {
-    //Background
-    /*GLfloat color[] = {1.0, 0.0, 0.0, 1.0};
-    glClearBufferfv(GL_COLOR, 0, color);*/
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-/*    //Render on texture
-    glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);   //Bind framebuffer
-    glUseProgram(m_glProgramRtT);
-    glDrawArrays(GL_TRIANGLES, 0, 3);                   //Render on texture
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);               //Unbind framebuffer
-*/
-
-    // Update I3C lookat
+    //Update I3C image
     static float angleX = 0;
     angleX +=0.02;
     m_GLI3CScene->lookAt(0,0,0, angleX, 0, 0);
-    //cout << angleX << endl;
 
-    //Render I3C
-    m_GLI3CScene->renderI3C();                           //Render I3C elements
-
-    //Display rendered texture
-    glUseProgram(m_glProgramDisplayTexture);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_renderedTexture);
-
-    //TODO vertex = {};
-/*
-    glEnableVertexAttribArray(1);
-    glVertexAttribIPointer(0, 2, GL_FLOAT, 0,(const GLvoid*)0);
-    glDisableVertexAttribArray(1);
-*/
-
-    GLint texID = glGetUniformLocation(m_glProgramDisplayTexture, "renderedTexture");
-    glUniform1i(texID, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);                   //Display texture full screen*/
-
+    this->renderToTexture();
+    this->displayTextureOnScreen();
 }
 
 void Basic_GL_I3C_RenderTest::stopGL()
@@ -107,12 +66,65 @@ void Basic_GL_I3C_RenderTest::stopGL()
 
     //Clear memory
     m_vertexArrayObject.release();
-    glDeleteProgram(m_glProgramRtT);
+    glDeleteProgram(m_glProgramRenderGLtoTexture);
     glDeleteProgram(m_glProgramDisplayTexture);
     m_vertexArrayObject.destroy();
 
     //Delete Rendering textures
     this->deleteFBO();
+}
+
+void Basic_GL_I3C_RenderTest::GL_I3C_init()
+{
+    //Attach the opengl context to an I3C scene
+    m_GLI3CScene->attachGLContext(wglGetCurrentDC(), wglGetCurrentContext());
+    if(!m_GLI3CScene->isUpAndRunning()){
+        cerr << "An error occured in the creation of an OpenCL context..." << endl;
+    }
+}
+
+void Basic_GL_I3C_RenderTest::setI3CScene()
+{
+    //Add & remove element to scene (partly tests :P)
+    m_GLI3CElement->setTransform(1,1,6);
+    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+    m_GLI3CScene->retreiveAll();
+    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+    m_GLI3CScene->retreiveI3CElement(m_GLI3CElement);
+    m_GLI3CScene->addI3CElement(m_GLI3CElement);
+}
+
+void Basic_GL_I3C_RenderTest::renderToTexture()
+{
+    //Render GL to texture
+    glBindTexture(GL_TEXTURE_2D, m_renderedTexture);
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);   //Bind framebuffer so that we render on texture
+    glViewport(0, 0, this->width(), this->height());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLfloat color[] = {1.0, 0.0, 0.0, 1.0};
+    glClearBufferfv(GL_COLOR, 0, color);
+
+    glUseProgram(m_glProgramRenderGLtoTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    //Render I3C
+    m_GLI3CScene->renderI3C();                           //Render I3C elements
+}
+
+void Basic_GL_I3C_RenderTest::displayTextureOnScreen()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());   //Bind qt framebuffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, this->width(), this->height());
+
+    glUseProgram(m_glProgramDisplayTexture);
+    GLint texID = glGetUniformLocation(m_glProgramDisplayTexture, "renderedTexture");
+    glUniform1i(texID, 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 GLuint Basic_GL_I3C_RenderTest::compileShaders(const GLchar* const* vertexShaderSources,
@@ -192,6 +204,10 @@ void Basic_GL_I3C_RenderTest::generateFBO(unsigned int width, unsigned int heigh
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     //Generate Depth Texture
+    /*glGenRenderbuffers(1, &m_depthTexture);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_depthTexture);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthTexture);*/
     glGenTextures(1, &m_depthTexture);
     glBindTexture(GL_TEXTURE_2D, m_depthTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -202,7 +218,7 @@ void Basic_GL_I3C_RenderTest::generateFBO(unsigned int width, unsigned int heigh
 
     //Bind textures to pipeline
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_renderedTexture, 0);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depthTexture, 0);
+    //glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depthTexture, 0);
 
     //Set the list of draw buffers.
     GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
@@ -210,7 +226,7 @@ void Basic_GL_I3C_RenderTest::generateFBO(unsigned int width, unsigned int heigh
 
     //Check if everything went ok
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
-        cerr << "Error! FrameBuffer is not complete" << endl;
+        logs << "GL_error: Basic_GL_I3C_RenderingTest --- generateFBO could not complete creation of textures" << endl;
     }
 
     //Unbind FrameBuffer

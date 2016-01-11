@@ -15,38 +15,39 @@ using namespace std;
 #include "../../i3c.h"
 #include "../../render/gl_i3c_scene.h"
 #include "../../render/gl_i3c_element.h"
+#include "./../../utils/logs.h"
 
 #define DEBUG           1           //1 = DEBUG MODE, 0 = RELEASE MODE
 
 
-static const GLchar* vertex_shader_sources_basic_test[] =
+static const GLchar* VS_renderTriangleToTexture[] =
 {
     "#version 330 core                                                      \n"
     "                                                                       \n"
     "void main(void)                                                        \n"
     "{                                                                      \n"
-    "   const vec4 vertices[3] = vec4[3](vec4( 0.25, -0.25, 0.5, 1.0),      \n"
-    "                                    vec4(-0.25, -0.25, 0.5, 1.0),      \n"
-    "                                    vec4( 0.25,  0.25, 0.5, 1.0));     \n"
+    "   const vec4 vertices[3] = vec4[3](vec4( 0.50, -0.50, 0.5, 1.0),      \n"
+    "                                    vec4(-0.50, -0.50, 0.5, 1.0),      \n"
+    "                                    vec4( 0.50,  0.50, 0.5, 1.0));     \n"
     "                                                                       \n"
     "   gl_Position = vertices[gl_VertexID];                                \n"
     "}                                                                      \n"
 };
 
 
-static const GLchar* fragment_shader_sources_basic_test[] =
+static const GLchar* FS_renderTriangleToTexture[] =
 {
     "#version 330 core                                                      \n"
     "                                                                       \n"
-    "layout(location = 0) out vec3 color;                                   \n"
+    "layout(location = 0) out vec4 color;                                   \n"
     "                                                                       \n"
     "void main(void)                                                        \n"
     "{                                                                      \n"
-    "   color = vec3(1.0, 1.0, 0.0);                                        \n"
+    "   color = vec4(1.0, 1.0, 0.0, 1.0);                                   \n"
     "}                                                                      \n"
 };
 
-static const GLchar* vertex_shader_RtT[]=
+static const GLchar* VS_renderTextureOnScreen[]=
 {
     "#version 330 core                                                      \n"
     "                                                                       \n"
@@ -69,7 +70,7 @@ static const GLchar* vertex_shader_RtT[]=
     "}                                                                      \n"
 };
 
-static const GLchar* fragment_shader_RtT[]=
+static const GLchar* FS_renderTextureOnScreen[]=
 {
     "#version 330 core                                                                          \n"
     "                                                                                           \n"
@@ -97,6 +98,12 @@ protected:
     virtual void paintGL();
 
 private:
+    void GL_I3C_init();
+    void setI3CScene();
+
+    void renderToTexture();
+    void displayTextureOnScreen();
+
     GLuint compileShaders(const GLchar* const* vertexShader, const GLchar* const* fragmentShader);
     void printShaderCompilationErrors(GLuint shader);
 
@@ -110,7 +117,7 @@ private:
     GL_I3C_Element *m_GLI3CElement;
     GL_I3C_Scene *m_GLI3CScene;
 
-    GLuint m_glProgramRtT;
+    GLuint m_glProgramRenderGLtoTexture;
     GLuint m_glProgramDisplayTexture;
 
     QOpenGLVertexArrayObject m_vertexArrayObject;
