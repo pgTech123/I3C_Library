@@ -104,7 +104,7 @@ void Basic_GL_I3C_RenderTest::renderToTexture()
     glViewport(0, 0, this->width(), this->height());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GLfloat color[] = {1.0, 0.0, 0.0, 1.0};
+    GLfloat color[] = {0.0, 0.0, 0.0, 1.0};
     glClearBufferfv(GL_COLOR, 0, color);
 
     glUseProgram(m_glProgramRenderGLtoTexture);
@@ -204,17 +204,17 @@ void Basic_GL_I3C_RenderTest::generateFBO(unsigned int width, unsigned int heigh
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     //Generate Depth Texture
-    /*glGenRenderbuffers(1, &m_depthTexture);
+    glGenRenderbuffers(1, &m_depthTexture);
     glBindRenderbuffer(GL_RENDERBUFFER, m_depthTexture);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthTexture);*/
-    glGenTextures(1, &m_depthTexture);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthTexture);//*/
+    /*glGenTextures(1, &m_depthTexture);
     glBindTexture(GL_TEXTURE_2D, m_depthTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);//*/
 
     //Bind textures to pipeline
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_renderedTexture, 0);
@@ -222,7 +222,7 @@ void Basic_GL_I3C_RenderTest::generateFBO(unsigned int width, unsigned int heigh
 
     //Set the list of draw buffers.
     GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1, drawBuffers);      // "1" is the size of DrawBuffers
+    glDrawBuffers(1, drawBuffers);
 
     //Check if everything went ok
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){

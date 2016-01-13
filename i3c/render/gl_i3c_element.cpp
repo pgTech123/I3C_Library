@@ -167,11 +167,21 @@ void GL_I3C_Element::setTextures(cl_mem* renderingTexture, cl_mem* depthMap)
     m_clRenderingTexture = renderingTexture;
     m_clDepthMap = depthMap;
 
-    //TODO: set Arguments
+    //Set Texture Arguments
     error = clSetKernelArg(m_clRenderingKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture);
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel rendering..." << endl;
     }
+    error = clSetKernelArg(m_clRenderingKernel, 8, sizeof(*m_clDepthMap), m_clDepthMap);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel rendering..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 9, sizeof(*m_clDepthMap), m_clDepthMap);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel rendering..." << endl;
+    }
+
+    //TODO: To remove
     error = clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture); //DEBUG ONLY
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel clearTexture..." << endl;
@@ -503,9 +513,15 @@ void GL_I3C_Element::delete_m_Frame()
 void GL_I3C_Element::acquireGLTexture()
 {
     glFinish(); //FIXME: IMPROVE THAT...
-    cl_int error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
+    cl_int error;
+    error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, 0, NULL);
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- acquireGLTexture(): could not acquireGLTexture..." << endl;
+        exit(-1);
+    }
+    error = clEnqueueAcquireGLObjects(*m_clQueue, 1, m_clDepthMap, 0, 0, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- acquireGLTexture(): could not acquire depthmap..." << endl;
         exit(-1);
     }
 }
@@ -520,6 +536,11 @@ void GL_I3C_Element::releaseGLTexture()
     error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clRenderingTexture, 0, NULL, NULL);
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseGLTexture(): could not releaseGLTexture..." << endl;
+        exit(-1);
+    }
+    error = clEnqueueReleaseGLObjects(*m_clQueue, 1, m_clDepthMap, 0, NULL, NULL);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseGLTexture(): could not release depthmap..." << endl;
         exit(-1);
     }
 }

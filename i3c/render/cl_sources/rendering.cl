@@ -191,7 +191,7 @@ float3 getCornerMissingPointDirection3(__global float3* cube3Pts)
 //
 //-----------------------------------------------------------------
 
-bool lockIfNotAlready(__global uint* memoryWithLockBit, int index)
+bool lockIfNotAlready(__global volatile uint* memoryWithLockBit, int index)
 {
     int unlockedValue = (memoryWithLockBit[index] & 0xBFFFFFFF);
     int lockedValue   = (memoryWithLockBit[index] | 0x40000000);
@@ -253,15 +253,17 @@ void pop(   __private char levelStackPtr[],
  *            (_pt 1)       (_pt 2)          -|-------> x
  *
  */
-void updateChildPosition( __global float4 *cubesStorage, __global volatile uint *memoryLock, int offsetParent,
-                          int offsetFirstChild, char map, __private char stack_level[], __private int stack_id[],
-                          __private char* stackPtr, __private char level)
+void updateChildPosition( __global float4 *cubesStorage, __global volatile uint *childId_memBit,
+                          int offsetParent, char map, __private char stack_level[],
+                          __private int stack_id[], __private char* stackPtr, __private char level)
 {
     //If was already lock, someone else is computing it so we wait for the result
-    if(!lockIfNotAlready(memoryLock, offsetParent)){
+    /*if(!lockIfNotAlready(childId_memBit, offsetParent)){
         //while((memoryLock[offsetParent] & 0x80000000) == 0){}
         //return;
-    }
+    }*/
+    int offsetFirstChild = childId_memBit[offsetParent];
+
     int offsetParent_3 = 3 * offsetParent;
     int offsetFirstChild_3 = 3*offsetFirstChild;
 
@@ -297,13 +299,13 @@ void updateChildPosition( __global float4 *cubesStorage, __global volatile uint 
             cubesStorage[offsetFirstChild_3+ localOffset +2].w = newPt3.z;
 
             //Push TODO: Depending on dst...
-            push(stack_level, stack_id, &stackPtr, level, offsetFirstChild+cubeNumber);
+            push(stack_level, stack_id, stackPtr, level, offsetFirstChild+cubeNumber);
             cubeNumber++;
         }
     }
 
     // 4 - Atomic write data ready
-    atomic_or(memoryLock+offsetParent, 0x80000000);
+    //atomic_or(childId_memBit+offsetParent, 0x80000000);
 }
 
 int4 getPixelBoundingRect(__global float4 *cubesStorage, int offset)
@@ -389,73 +391,62 @@ __kernel void render(   __write_only image2d_t texture,
                         __global volatile uint *childId, // 2 MSB reserved for locks
                         __global float4 *cubeCorners,
                         __global uint *maxNumOfLevelPtr,
-                        __global uint *topCubeIdPtr)
+                        __global uint *topCubeIdPtr,
+                        __write_only image2d_depth_t depthMapWrite,
+                        __read_only image2d_depth_t depthMapRead)
 {
-    int  currentCubeId = topCubeIdPtr[0];       //Start by the beginning
-    int  childCubeId = childId[currentCubeId] & 0x3FFFFFFF;  //Remove status bits
     int4 boundingRect;
-    uint topLevel = maxNumOfLevelPtr[0]-1;
+    int currentCubeId = topCubeIdPtr[0];
+    char topLevel = maxNumOfLevelPtr[0]-1;
+
     int2 pixelCoord = (int2)( get_global_id(0) + screenOffset[0].x,
                               get_global_id(1) + screenOffset[0].y);
-
-    //Stack parameters
-    char stackPtr = 0;
-    char stack_level[STACK_SIZE];
-    int  stack_id[STACK_SIZE];
 
     //DEBUG: Work item size
     if(get_global_id(0) %2){
         float4 pixelValue = (float4)(1.0, 0.0, 0.0, 1.0 );
         write_imagef(texture, pixelCoord, pixelValue);
     }
+    //DEBUG: end
 
-    //Actual magic happens here
-    for(char level = topLevel; level >= 0; level--){ //We compute where child cubes are starting withe the biggest one
-        //We get bounding rect of the cube
-        boundingRect = getPixelBoundingRect(&cubeCorners[currentCubeId*3], 0);
+
+    //Stack parameters
+    char stackPtr = 0;
+    char stack_level[STACK_SIZE];
+    int  stack_id[STACK_SIZE];
+
+
+    for(char level = topLevel; level > 0; level--){ //We compute where child cubes are starting withe the biggest one
+
+        boundingRect = getPixelBoundingRect(cubeCorners, currentCubeId*3);
 
         //If not seen, pop next probable cube
-     /*   if(!isInBoundingRect(boundingRect, pixelCoord) ){
+        if(!isInBoundingRect(boundingRect, pixelCoord)){
             if(stackPtr == 0){    return;    }  //Not seen and no other possibilities
             pop(stack_level, stack_id, &stackPtr, &level, &currentCubeId);  //POP: FIXME: apporte de la granularite???
-            currentCubeId = currentCubeId & 0x3FFFFFFF;
-            childCubeId = childId[currentCubeId] & 0x3FFFFFFF;  //Remove status bits
             continue;
-        }*/
+        }
 
         //If pixel cube, we draw it
-        if(level == 8){
+        if(level == 1){ //Actually should be level < threshold
             //drawPixelCube(TODO);
-            //float4 pixelValue = (float4)(1.0, 1.0, 1.0, 1.0 );
             float4 pixelValue = (float4)((float)pixels[0].x/255, (float)pixels[0].y/255, (float)pixels[0].z/255, 1.0 );
             write_imagef(texture, pixelCoord, pixelValue);
+            write_imagef(depthMapWrite, pixelCoord, 0.7);
             return;
         }
 
         //If not pixel cube:
-        updateChildPosition(cubeCorners, childId, currentCubeId, childCubeId, cubeMap[currentCubeId],
+        updateChildPosition(cubeCorners, childId, currentCubeId, cubeMap[currentCubeId],
                             stack_level, stack_id, &stackPtr, level);
 
         //Pop last and update IDs
         pop(stack_level, stack_id, &stackPtr, &level, &currentCubeId);
-        currentCubeId = currentCubeId & 0x3FFFFFFF;
-        childCubeId = childId[currentCubeId] & 0x3FFFFFFF;
     }
-
-    /*for(int i = 1; i < 9; i++){
-        boundingRect = getPixelBoundingRect(&cubeCorners[i*3], 0);
-        if(isInBoundingRect(boundingRect, pixelCoord) ){
-            //float4 pixelValue = (float4)(1.0, 5.0, 0.5, 1.0);
-            int tmp= 0;
-            float4 pixelValue = (float4)(1.0/i, 1.0/i, 1.0/i, 1.0 );
-            write_imagef(texture, pixelCoord, pixelValue);
-            return;
-        }
-    }*/
 }
 
 
-// CLEARS THE TEXTURE
+// CLEARS THE TEXTURE: TODO: TO REMOVE
 __kernel void clearTexture(__write_only image2d_t texture)
 {
     /*int2 pixelCoord = (int2)( get_global_id(0), get_global_id(1));

@@ -29,17 +29,26 @@ bool GL_I3C_Scene::setRenderingTextures(GLuint renderingTexture, GLuint depthMap
         //Release previous texture (if any)
         this->releaseTextures();
 
+        cl_int error;
         //Update with new texture
         m_clRenderingTexture = clCreateFromGLTexture(m_context, CL_MEM_READ_WRITE, GL_TEXTURE_2D,
-                                                     0, renderingTexture, NULL);
-        m_clDepthMap = clCreateFromGLTexture(m_context, CL_MEM_READ_WRITE, GL_TEXTURE_2D,
-                                             0, depthMap, NULL);
+                                                     0, renderingTexture, &error);
+        if(error != CL_SUCCESS){
+            logs << "cl_error : " << error <<": GL_I3C_Scene --- setRenderingTextures(): could not create texture..." << endl;
+        }
+
+        //m_clDepthMap = clCreateFromGLTexture(m_context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, depthMap, &error);
+        m_clDepthMap = clCreateFromGLRenderbuffer(m_context, CL_MEM_READ_WRITE, depthMap, &error);
+        if(error != CL_SUCCESS){
+            logs << "cl_error : " << error <<": GL_I3C_Scene --- setRenderingTextures(): could not create depthmap..." << endl;
+        }
 
         //Update Screen Size
         //We consider that both dephtMap and renderingTexture are the same size.
         glBindTexture(GL_TEXTURE_2D, renderingTexture);
         glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &m_ScreenWidth);
         glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &m_ScreenHeight);
+
 
         //DEBUG
         //cout << m_ScreenWidth << ", " << m_ScreenHeight << endl;
