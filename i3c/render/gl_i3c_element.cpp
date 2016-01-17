@@ -123,10 +123,6 @@ bool GL_I3C_Element::setOCLContext(cl_context* context, cl_program* program, cl_
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel Render..." << endl;
     }
-    m_clClearTextureKernel = clCreateKernel(*program, "clearTexture", &error);    //DEBUG ONLY
-    if(error != CL_SUCCESS){
-        logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel clearTexture..." << endl;
-    }
     m_clClearKernel = clCreateKernel(*program, "clearMemoryBit", &error);
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- setOCLContext(): could not CreateKernel clearMemBit..." << endl;
@@ -181,12 +177,6 @@ void GL_I3C_Element::setTextures(cl_mem* renderingTexture, cl_mem* depthMap)
         logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel rendering..." << endl;
     }
 
-    //TODO: To remove
-    error = clSetKernelArg(m_clClearTextureKernel, 0, sizeof(*m_clRenderingTexture), m_clRenderingTexture); //DEBUG ONLY
-    if(error != CL_SUCCESS){
-        logs << "i3c_error : " << error <<": GL_I3C_Element --- setTextures(): could not SetKernelArg texture for kernel clearTexture..." << endl;
-    }
-
     m_texturesSpecified = true;
 }
 
@@ -202,7 +192,6 @@ void GL_I3C_Element::render()
         //IF position exactly = to last position, do not clear precomputed cube positions
 
         //Clear previous texture
-        this->enqueueClearTexture();
         this->enqueueClearMemoryBit();
 
         //Actual rendering
@@ -362,7 +351,6 @@ void GL_I3C_Element::initCLMemObj()
     m_clRenderingKernel = NULL;
     m_clClearKernel = NULL;
     m_clLoadVideoBufferKernel = NULL;
-    m_clClearTextureKernel = NULL;      //DEBUG ONLY
 
     //Mem (Arguments)
     m_clCubeCorners = NULL;
@@ -400,13 +388,6 @@ void GL_I3C_Element::releaseKernels()
         m_clLoadVideoBufferKernel = NULL;
         if(error != CL_SUCCESS){
             logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clLoadVideoBufferKernel..." << endl;
-        }
-    }
-    if(m_clClearTextureKernel != NULL){     //DEBUG ONLY
-        error = clReleaseKernel(m_clClearTextureKernel);
-        m_clClearTextureKernel = NULL;
-        if(error != CL_SUCCESS){
-            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseKernels(): could not clReleaseKernel m_clClearTextureKernel..." << endl;
         }
     }
 }
@@ -667,17 +648,6 @@ void GL_I3C_Element::enqueueClearMemoryBit()
 
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueClearMemoryBit(): could not enqueueClearMemoryBit..." << endl;
-        exit(-1);
-    }
-}
-
-void GL_I3C_Element::enqueueClearTexture()
-{
-    size_t wi_clear[2] = {m_screenWidth, m_screenHeight};
-    cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clClearTextureKernel, 2, NULL,
-                                          wi_clear , NULL, 0, NULL, NULL);
-    if(error != CL_SUCCESS){
-        logs << "i3c_error : " << error <<": GL_I3C_Element --- enqueueClearTexture(): could not enqueueClearTexture..." << endl;
         exit(-1);
     }
 }

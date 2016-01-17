@@ -161,6 +161,7 @@ int ImageV1::readParents(fstream* file, I3C_Frame* frame)
 
             //cout << offset << endl;   //DEBUG
             //cout << index << endl;    //DEBUG
+            this->rotateMap(&map, level);
             frame->cubeMap[index] = map;
             frame->childCubeId[index] = offset;
             index++;
@@ -194,5 +195,34 @@ void ImageV1::clearMapsAtLevel()
     if(m_pi_mapsAtLevel!= NULL){
         delete[] m_pi_mapsAtLevel;
         m_pi_mapsAtLevel = NULL;
+    }
+}
+
+void ImageV1::rotateMap(unsigned char* ucMap, int quarters)
+{
+    quarters = 3-quarters%4;
+    for(int i = 0; i < quarters; i++){
+       /* char tmp1 = *ucMap&0x01;
+        char tmp2 = *ucMap&0x02;
+        char tmp3 = *ucMap&0x04;
+        char tmp4 = *ucMap&0x08;
+        char tmp5 = *ucMap&0x10;
+        char tmp6 = *ucMap&0x20;
+        char tmp7 = *ucMap&0x40;
+        char tmp8 = *ucMap&0x80;
+//TODO: FIXME...
+        *ucMap = 0;
+        *ucMap |= (tmp1 << 1);
+        *ucMap |= (tmp2 >> 1);
+        *ucMap |= (tmp3 << 3);
+        *ucMap |= (tmp4 << 1);
+        *ucMap |= (tmp5 >> 2);
+        *ucMap |= (tmp6 >> 2);
+        *ucMap |= (tmp7 << 0);
+        *ucMap |= (tmp8 >> 0);
+
+      /*  *ucMap = 0;
+        *ucMap |= (tmp1 << 4);
+        *ucMap |= (tmp2 >> 4);*/
     }
 }

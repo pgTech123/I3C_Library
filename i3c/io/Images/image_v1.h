@@ -31,6 +31,8 @@ private:
 
     void clearMapsAtLevel();
 
+    void rotateMap(unsigned char* ucMap, int quarters);
+
 private:
     int m_i_sideSize;
     int m_i_numberOfLevels;

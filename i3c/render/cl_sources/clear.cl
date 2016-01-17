@@ -5,6 +5,5 @@
 
 __kernel void clearMemoryBit(__global int *childId_memStatusBit)
 {
-    //FIXME: Verify the need to be global...
-    atomic_and(childId_memStatusBit+get_global_id(0), 0x3FFFFFFF);  //Reset status bits
+    childId_memStatusBit[get_global_id(0)] &= 0x3FFFFFFF;   //Clear 2 status bits
 }

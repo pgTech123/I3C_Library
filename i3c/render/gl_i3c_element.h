@@ -87,7 +87,6 @@ private:
     void enqueueSetCubeMaps();
 
     void enqueueClearMemoryBit();
-    void enqueueClearTexture();
     void enqueueRender();
 
 private:
@@ -121,7 +120,6 @@ private:
 
     //Kernels
     cl_kernel m_clRenderingKernel;
-    cl_kernel m_clClearTextureKernel;       //DEBUG ONLY
     cl_kernel m_clClearKernel;
     cl_kernel m_clLoadVideoBufferKernel;
 

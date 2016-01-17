@@ -3,10 +3,7 @@
 
 #include <iostream>
 
-#define DEBUG_MODE      1
-#define RELEASE_MODE    0
-
-#define MODE            DEBUG_MODE
+#define DEBUG_MODE
 #define LOG_PATH        "./logs.txt"
 
 // Thanks to: http://stackoverflow.com/questions/8415890/c-chaining-of-the-operator-for-stdcout-like-usage
@@ -31,7 +28,11 @@ public:
     }
 };
 
+#ifdef DEBUG_MODE
 static Logs logs;
+#else
+static Logs(/*FILE: TODO*/);
+#endif
 
 
 #endif // LOGS_H
