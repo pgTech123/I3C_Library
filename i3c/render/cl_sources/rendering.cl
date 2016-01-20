@@ -285,17 +285,17 @@ void updateChildPosition( __global float4 *cubesStorage, __private int offsetFir
 
     // 2 - Split arrays in 2
     float3 xVector, yVector, zVector;   // x,y,z -> cube axis
-    xVector = (cubesStorage[offsetParent_3+2].xyz - cubeStorageOffsetParent3_1.xyz)/2;
-    yVector = (cubesStorage[offsetParent_3+0].xyz - cubeStorageOffsetParent3_1.xyz)/2;
-    zVector = (pt3 - cubeStorageOffsetParent3_1.xyz)/2;
+    xVector = (cubesStorage[offsetParent_3+2].xyz - cubeStorageOffsetParent3_1.xyz)*0.5;
+    yVector = (cubesStorage[offsetParent_3+0].xyz - cubeStorageOffsetParent3_1.xyz)*0.5;
+    zVector = (pt3 - cubeStorageOffsetParent3_1.xyz)*0.5;
 
     // 3 - Compute child
     float4 localResult[4*8];
     float unorderedDst[8];
     char cubeNumber = 0;
-    const char xBool[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-    const char yBool[8] = {1, 1, 0, 0, 1, 1, 0, 0};
-    const char zBool[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    const char xBool[8] = {1, 0, 0, 1, 1, 0, 0, 1};
+    const char yBool[8] = {1, 1, 1, 1, 0, 0, 0, 0};
+    const char zBool[8] = {1, 1, 0, 0, 1, 1, 0, 0};
 
     for(char i = 0; i < 8; i++){
         if(map & (0x01 << i)){
@@ -336,7 +336,8 @@ void updateChildPosition( __global float4 *cubesStorage, __private int offsetFir
         potentialNextFartest = 0;   //reset for next round
 
         //5 - Store in global memory
-        char localOffset = 3*potentialNextFartestIndex;
+        //FIXME
+        char localOffset = 3*i;//potentialNextFartestIndex;
         cubesStorage[offsetFirstChild_3+ localOffset +0] = localResult[i*4 + 0];
         cubesStorage[offsetFirstChild_3+ localOffset +1] = localResult[i*4 + 1];
         cubesStorage[offsetFirstChild_3+ localOffset +2] = localResult[i*4 + 2];

@@ -200,9 +200,8 @@ void ImageV1::clearMapsAtLevel()
 
 void ImageV1::rotateMap(unsigned char* ucMap, int quarters)
 {
-    quarters = 3-quarters%4;
     for(int i = 0; i < quarters; i++){
-       /* char tmp1 = *ucMap&0x01;
+        char tmp1 = *ucMap&0x01;
         char tmp2 = *ucMap&0x02;
         char tmp3 = *ucMap&0x04;
         char tmp4 = *ucMap&0x08;
@@ -212,15 +211,15 @@ void ImageV1::rotateMap(unsigned char* ucMap, int quarters)
         char tmp8 = *ucMap&0x80;
 //TODO: FIXME...
         *ucMap = 0;
-        *ucMap |= (tmp1 << 1);
-        *ucMap |= (tmp2 >> 1);
-        *ucMap |= (tmp3 << 3);
-        *ucMap |= (tmp4 << 1);
-        *ucMap |= (tmp5 >> 2);
-        *ucMap |= (tmp6 >> 2);
-        *ucMap |= (tmp7 << 0);
+        *ucMap |= (tmp1 << 0);
+        *ucMap |= (tmp2 << 0);
+        *ucMap |= (tmp3 << 0);
+        *ucMap |= (tmp4 << 0);
+        *ucMap |= (tmp5 >> 0);
+        *ucMap |= (tmp6 >> 0);
+        *ucMap |= (tmp7 >> 0);
         *ucMap |= (tmp8 >> 0);
-
+//cout << quarters<< endl;
       /*  *ucMap = 0;
         *ucMap |= (tmp1 << 4);
         *ucMap |= (tmp2 >> 4);*/
