@@ -671,6 +671,9 @@ void GL_I3C_Element::enqueueClearMemoryBit()
 
 void GL_I3C_Element::enqueueRender()
 {
+    if(m_ObjectBoundOnScreen.w <=0 || m_ObjectBoundOnScreen.h <= 0){
+        return;
+    }
     //Create the appropriate amount of workitems (w and h from m_ObjectBoundOnScreen)
     size_t wi[2] = {m_ObjectBoundOnScreen.w, m_ObjectBoundOnScreen.h};
     cl_int error = clEnqueueNDRangeKernel(*m_clQueue, m_clRenderingKernel, 2, NULL,
