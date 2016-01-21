@@ -237,12 +237,13 @@ void orderedPush(   __private char stack_level[],
                     __private char* stackPtr,
                     __private char level,
                     __private int offsetFirstChild,
-                    __private char map)
+                    __private char map,
+                    __global char* renderingOrder)
 {
     char cubeNumber = 0;
     for(char i = 0; i < 8; i++){
         if(map & (0x01 << i)){
-            push(stack_level, stack_id, stackPtr, level, offsetFirstChild + cubeNumber);
+            push(stack_level, stack_id, stackPtr, level, offsetFirstChild + renderingOrder[offsetFirstChild+cubeNumber]);
             cubeNumber ++;
         }
     }
@@ -270,7 +271,8 @@ void orderedPush(   __private char stack_level[],
  */
 void updateChildPosition( __global float4 *cubesStorage, __private int offsetFirstChild,
                           int offsetParent, char map, __private char stack_level[],
-                          __private int stack_id[], __private char* stackPtr, __private char level)
+                          __private int stack_id[], __private char* stackPtr,
+                          __private char level, __global char* renderingOrder)
 {
     int offsetParent_3 = 3 * (offsetParent & 0x3FFFFFFF);
     int offsetFirstChild_3 = 3*offsetFirstChild;
@@ -337,6 +339,7 @@ void updateChildPosition( __global float4 *cubesStorage, __private int offsetFir
 
         //5 - Store in global memory
         //FIXME
+        renderingOrder[offsetFirstChild + i] = potentialNextFartestIndex;
         char localOffset = 3*i;//potentialNextFartestIndex;
         cubesStorage[offsetFirstChild_3+ localOffset +0] = localResult[i*4 + 0];
         cubesStorage[offsetFirstChild_3+ localOffset +1] = localResult[i*4 + 1];
@@ -429,7 +432,8 @@ __kernel void render(   __write_only image2d_t texture,
                         __global uint *maxNumOfLevelPtr,
                         __global uint *topCubeIdPtr,
                         __write_only image2d_depth_t depthMapWrite,
-                        __read_only image2d_depth_t depthMapRead)
+                        __read_only image2d_depth_t depthMapRead,
+                        __global char *renderingOrder)
 {
     int4 boundingRect;
     int currentCubeId = topCubeIdPtr[0];
@@ -439,10 +443,10 @@ __kernel void render(   __write_only image2d_t texture,
                               get_global_id(1) + screenOffset[0].y);
 
     //DEBUG: Work item size
-    if(get_global_id(0) %2){
+    /*if(get_global_id(0) %2){
         float4 pixelValue = (float4)(1.0, 0.0, 0.0, 1.0 );
         write_imagef(texture, pixelCoord, pixelValue);
-    }
+    }*/
     //DEBUG: end
 
 
@@ -477,13 +481,13 @@ __kernel void render(   __write_only image2d_t texture,
         if((childId[currentCubeId] & 0x80000000) == 0 && lockIfNotAlready(childId, currentCubeId))
         {
             updateChildPosition(cubeCorners, offsetFirstChild, currentCubeId, cubeMap[currentCubeId],
-                                stack_level, stack_id, &stackPtr, level);
+                                stack_level, stack_id, &stackPtr, level, renderingOrder);
             atomic_or(childId+currentCubeId, 0x80000000);
         }
         while((childId[currentCubeId] & 0x80000000) == 0){}
 
         //Ordered push
-        orderedPush(stack_level ,stack_id, &stackPtr, level, offsetFirstChild, cubeMap[currentCubeId]);
+        orderedPush(stack_level ,stack_id, &stackPtr, level, offsetFirstChild, cubeMap[currentCubeId], renderingOrder);
 
         //Pop last and update IDs
         pop(stack_level, stack_id, &stackPtr, &level, &currentCubeId);

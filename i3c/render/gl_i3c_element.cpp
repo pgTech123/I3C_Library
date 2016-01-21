@@ -260,6 +260,11 @@ void GL_I3C_Element::prepareOCL()
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_clCubeCorners..." << endl;
     }
+    m_renderingOrder = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY,
+                                   m_frame->cubeMapArraySize*sizeof(cl_char), NULL, &error);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clCreateBuffer m_renderingOrder..." << endl;
+    }
 
     //Allocate fixed size memory
     m_clObjectOffset = clCreateBuffer(*m_clContext, CL_MEM_READ_ONLY, sizeof(cl_int2), NULL, &error);
@@ -303,6 +308,10 @@ void GL_I3C_Element::prepareOCL()
     error = clSetKernelArg(m_clRenderingKernel, 7, sizeof(m_clTopCubeId), &m_clTopCubeId);
     if(error != CL_SUCCESS){
         logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_clTopCubeId..." << endl;
+    }
+    error = clSetKernelArg(m_clRenderingKernel, 10, sizeof(m_renderingOrder), &m_renderingOrder);
+    if(error != CL_SUCCESS){
+        logs << "i3c_error : " << error <<": GL_I3C_Element --- prepareOCL(): could not clSetKernelArg m_renderingOrder..." << endl;
     }
 
     error = clSetKernelArg(m_clClearKernel, 0, sizeof(m_clChildId), &m_clChildId);
@@ -363,6 +372,7 @@ void GL_I3C_Element::initCLMemObj()
     m_clObjectOffset = NULL;
     m_clNumberOfLevels = NULL;
     m_clTopCubeId = NULL;
+    m_renderingOrder = NULL;
 }
 
 void GL_I3C_Element::releaseKernels()
@@ -464,6 +474,13 @@ void GL_I3C_Element::releaseArguments()
         m_clTopCubeId = NULL;
         if(error != CL_SUCCESS){
             logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_clTopCubeId..." << endl;
+        }
+    }
+    if(m_renderingOrder != NULL){
+        error = clReleaseMemObject(m_renderingOrder);
+        m_renderingOrder = NULL;
+        if(error != CL_SUCCESS){
+            logs << "i3c_error : " << error <<": GL_I3C_Element --- releaseArguments(): could not ReleaseMemObject m_renderingOrder..." << endl;
         }
     }
 }

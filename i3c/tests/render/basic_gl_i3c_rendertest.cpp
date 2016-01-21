@@ -4,7 +4,7 @@ Basic_GL_I3C_RenderTest::Basic_GL_I3C_RenderTest(QWidget* parent)
     :GL_Window(parent)
 {
     //"Elsa_512.i3c"   "camTest.i3c"    "1_plane.i3c"    "1_cube.i3c"    "2_plane.i3c"
-    m_GLI3CElement = new GL_I3C_Element("camTest.i3c");
+    m_GLI3CElement = new GL_I3C_Element("Elsa_128.i3c");
     m_GLI3CScene = new GL_I3C_Scene();
 }
 
@@ -87,7 +87,7 @@ void Basic_GL_I3C_RenderTest::GL_I3C_init()
 void Basic_GL_I3C_RenderTest::setI3CScene()
 {
     //Add & remove element to scene (partly tests :P)
-    m_GLI3CElement->setTransform(1,1,6);
+    m_GLI3CElement->setTransform(1,1,4);
     m_GLI3CScene->addI3CElement(m_GLI3CElement);
     m_GLI3CScene->retreiveAll();
     m_GLI3CScene->addI3CElement(m_GLI3CElement);

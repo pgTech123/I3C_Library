@@ -136,6 +136,7 @@ private:
     cl_mem m_clPixels;
     cl_mem m_clCubesMap;
     cl_mem m_clChildId;
+    cl_mem m_renderingOrder;
 
     //OpenCL video memory
     cl_mem m_clDiffPixels;
