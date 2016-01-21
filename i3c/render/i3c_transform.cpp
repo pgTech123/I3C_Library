@@ -50,10 +50,10 @@ void computeTransform(Mat4x4* originalCoord,
     //Multiply originalCoord and transformMatrix
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j++){
-            transformSumMatrix.element[i][j] = originalCoord->element[i][0]*transformMatrix->element[0][j]+
-                                               originalCoord->element[i][1]*transformMatrix->element[1][j]+
-                                               originalCoord->element[i][2]*transformMatrix->element[2][j]+
-                                               originalCoord->element[i][3]*transformMatrix->element[3][j];
+            transformSumMatrix.element[i][j] = transformMatrix->element[i][0]*originalCoord->element[0][j]+
+                                               transformMatrix->element[i][1]*originalCoord->element[1][j]+
+                                               transformMatrix->element[i][2]*originalCoord->element[2][j]+
+                                               transformMatrix->element[i][3]*originalCoord->element[3][j];
 
         }
     }
