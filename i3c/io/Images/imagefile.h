@@ -1,6 +1,7 @@
 //Author:           Pascal Gendron
 //Creation date:    September 4th 2015
-//Description:      Read Image (Back-end)
+//Description:      Read Image (Back-end): It's here that we lock (and unlock)
+//                  I3C_Frame.
 //
 //Additionnal info: When a new image compression is created,
 //                  the header ID should be added in this file.
@@ -34,6 +35,7 @@ public:
     // |ImageFile()| and |readFrame()| reads the
     // file and fills I3C_Frame.
     int readFrame(fstream *file, I3C_Frame* frame);     //Returns error code
+    int writeFrame(fstream *file, I3C_Frame* frame, int imgFormat);
 
     // |isImage()| returns true if the header is an image header
     bool isImage(fstream *file);

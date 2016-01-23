@@ -32,7 +32,7 @@ void YUV_Pixels::clear()
 }
 
 
-I3C_Frame::I3C_Frame()
+I3C_Frame::I3C_Frame():std::mutex()
 {
     init();
 }

@@ -4,7 +4,7 @@ Basic_GL_I3C_RenderTest::Basic_GL_I3C_RenderTest(QWidget* parent)
     :GL_Window(parent)
 {
     //"Elsa_512.i3c"   "camTest.i3c"    "1_plane.i3c"    "1_cube.i3c"    "2_plane.i3c"
-    m_GLI3CElement = new GL_I3C_Element("Elsa_128.i3c");
+    m_GLI3CElement = new GL_I3C_Element("camTest.i3c");
     m_GLI3CScene = new GL_I3C_Scene();
 }
 
@@ -54,7 +54,8 @@ void Basic_GL_I3C_RenderTest::paintGL()
     //Update I3C image
     static float angleX = 0;
     angleX +=0.02;
-    m_GLI3CScene->lookAt(0,0,0, angleX, 0, 0);
+    m_GLI3CElement->setTransform(0,1,3.5, 2*angleX, angleX*2,3*angleX);
+    m_GLI3CScene->lookAt(0,0,0, 0.2, 0.3, 0);
 
     this->renderToTexture();
     this->displayTextureOnScreen();

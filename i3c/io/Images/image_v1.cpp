@@ -62,6 +62,12 @@ int ImageV1::read(fstream* file, I3C_Frame* frame)
     return I3C_SUCCESS;
 }
 
+int ImageV1::write(fstream* file, I3C_Frame* frame)
+{
+    //TODO
+    return I3C_SUCCESS;
+}
+
 int ImageV1::readSideSize(fstream* file)
 {
     *file >> m_i_sideSize;

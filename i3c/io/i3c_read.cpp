@@ -22,7 +22,7 @@ int I3C_Read::open(const char* filename)
 
     //Check if file open
     if(!m_file.is_open()){
-        return I3C_ERR_FILE_NOT_FOUND;
+        return I3C_ERR_FILE_NOT_OPEN;
     }
 
     //Check if Image or Video
@@ -54,7 +54,7 @@ void I3C_Read::close()
 int I3C_Read::read(I3C_Frame* frame, int frameNumber)
 {
     if(!m_file.is_open()){
-        return I3C_ERR_FILE_NOT_FOUND;
+        return I3C_ERR_FILE_NOT_OPEN;
     }
     else if(m_b_isImage){
         return m_ImageFile->readFrame(&m_file, frame);

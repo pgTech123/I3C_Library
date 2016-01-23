@@ -6,9 +6,10 @@
 #define I3C_H
 
 #include <stdio.h>
+#include <mutex>
 
 #define I3C_SUCCESS                     0
-#define I3C_ERR_FILE_NOT_FOUND          1
+#define I3C_ERR_FILE_NOT_OPEN           1
 #define I3C_ERR_COMPRESS_NOT_FOUND      2
 #define I3C_INVALID_IMAGE_SIZE          3
 #define I3C_FILE_CORRUPTED              4
@@ -46,7 +47,7 @@ public:
 };
 
 
-class I3C_Frame{
+class I3C_Frame: public std::mutex{
 
 public:
     int resolution;

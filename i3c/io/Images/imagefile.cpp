@@ -13,6 +13,8 @@ int ImageFile::readFrame(fstream *file, I3C_Frame* frame)
     ImageV1 imgV1;
     //<NEW FILE TYPE>: Instanciate your class here
 
+    //Lock while frame is being read
+    frame->lock();
     switch(fileID){
         case(I3C_IMAGE_V1):
             error = imgV1.read(file, frame);
@@ -24,6 +26,32 @@ int ImageFile::readFrame(fstream *file, I3C_Frame* frame)
         default:
             error = I3C_ERR_COMPRESS_NOT_FOUND;
     }
+    frame->unlock();
+
+    return error;
+}
+
+int ImageFile::writeFrame(fstream *file, I3C_Frame* frame, int imgFormat)
+{
+    int error;
+
+    //Formats
+    ImageV1 imgV1;
+    //<NEW FILE TYPE>: Instanciate your class here
+
+    frame->lock();
+    switch(imgFormat){
+        case(I3C_IMAGE_V1):
+            error = imgV1.write(file, frame);
+            break;
+        //case(I3C_IMAGE_V2):
+            // TODO: ReadV2(frame);
+        // <NEW FILE TYPE>: Add a case(|your new header|):
+        //      error = your_new_function(frame);
+        default:
+            error = I3C_ERR_COMPRESS_NOT_FOUND;
+    }
+    frame->unlock();
 
     return error;
 }

@@ -22,6 +22,7 @@ public:
     ~ImageV1();
 
     int read(fstream* file, I3C_Frame* frame);
+    int write(fstream* file, I3C_Frame* frame);
 
 private:
     int readSideSize(fstream* file);

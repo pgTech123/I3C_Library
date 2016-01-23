@@ -459,6 +459,7 @@ __kernel void render(   __write_only image2d_t texture,
 
     for(char level = topLevel; level >= 0; level--){
 
+        //TODO: rearrange code so that this is called only once per cube, not many time by every work items
         boundingRect = getPixelBoundingRect(cubeCorners, currentCubeId*3);
 
         //If not seen, pop next probable cube

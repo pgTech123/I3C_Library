@@ -95,7 +95,7 @@ private:
     bool m_fileLoaded;
 
     //Frame
-    I3C_Frame *m_frame;
+    I3C_Frame *m_frame; //No need to lock as it won't be shared between threads
 
     //Video Variables
     bool m_videoPlaying;
