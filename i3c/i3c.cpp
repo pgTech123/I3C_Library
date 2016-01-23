@@ -40,6 +40,7 @@ I3C_Frame::I3C_Frame():std::mutex()
 void I3C_Frame::init()
 {
     resolution = 0;
+    mapAtLevel = NULL;
     pixel = NULL;
     yuv_pixel = NULL;
     cubeMap = NULL;
@@ -55,6 +56,9 @@ I3C_Frame::~I3C_Frame()
 
 void I3C_Frame::clear()
 {
+    if(mapAtLevel!= NULL){
+        delete[] mapAtLevel;
+    }
     if(pixel != NULL){
         delete[] pixel;
     }

@@ -2,12 +2,10 @@
 
 ImageV1::ImageV1()
 {
-    m_pi_mapsAtLevel = NULL;
 }
 
 ImageV1::~ImageV1()
 {
-    this->clearMapsAtLevel();
 }
 
 int ImageV1::read(fstream* file, I3C_Frame* frame)
@@ -31,11 +29,11 @@ int ImageV1::read(fstream* file, I3C_Frame* frame)
     m_i_totalMaps = 0;
     m_i_numberOfLevels = firstHighBit(m_i_sideSize);
     frame->numberOfLevels = m_i_numberOfLevels;
-    m_pi_mapsAtLevel = new int[m_i_numberOfLevels];
+    frame->mapAtLevel = new int[m_i_numberOfLevels];
     for(int i = 0; i < m_i_numberOfLevels; i++)
     {
         *file >> m_i_buffer;
-        m_pi_mapsAtLevel[i] = m_i_buffer;
+        frame->mapAtLevel[i] = m_i_buffer;
         m_i_totalMaps += m_i_buffer;
     }
     frame->cubeMapArraySize = m_i_totalMaps;
@@ -47,24 +45,29 @@ int ImageV1::read(fstream* file, I3C_Frame* frame)
     //Read pixels values
     error = readPixels(file, frame);
     if(error != I3C_SUCCESS){
-        this->clearMapsAtLevel();
         return error;
     }
 
     //Read maps
     error = readParents(file, frame);
     if(error != I3C_SUCCESS){
-        this->clearMapsAtLevel();
         return error;
     }
 
-    this->clearMapsAtLevel();
     return I3C_SUCCESS;
 }
 
 int ImageV1::write(fstream* file, I3C_Frame* frame)
 {
-    //TODO
+    int error;
+    this->writeSideSize(file, frame);
+    this->writeMapsAtLevel(file, frame);
+    error = this->writePixels(file, frame);
+    if(error){
+        return error;
+    }
+    this->writeParents(file, frame);
+
     return I3C_SUCCESS;
 }
 
@@ -90,7 +93,7 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
     int marker = file->tellg();
 
     //Count pixels
-    for(int i = 0; i < m_pi_mapsAtLevel[0]; i++){
+    for(int i = 0; i < frame->mapAtLevel[0]; i++){
         error = readMap(file, &map, &pixelsInCube);
         if(error != I3C_SUCCESS){
             return error;
@@ -123,7 +126,7 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
     }
 
     //Read Pixels
-    for(int i = 0; i < m_pi_mapsAtLevel[0]; i++)
+    for(int i = 0; i < frame->mapAtLevel[0]; i++)
     {
         error = readMap(file, &map, &pixelsInCube);
         if(error != I3C_SUCCESS){
@@ -153,11 +156,11 @@ int ImageV1::readPixels(fstream* file, I3C_Frame* frame)
 int ImageV1::readParents(fstream* file, I3C_Frame* frame)
 {
     unsigned char map;
-    int error, numOfChild = 0, offset = 0, index = m_pi_mapsAtLevel[0];
+    int error, numOfChild = 0, offset = 0, index = frame->mapAtLevel[0];
 
     //Read the maps of each upper level
     for(int level = 1; level < m_i_numberOfLevels; level++){
-        for(int i = 0; i < m_pi_mapsAtLevel[level]; i++)
+        for(int i = 0; i < frame->mapAtLevel[level]; i++)
         {
             error = readMap(file, &map, &numOfChild);
             if(error != I3C_SUCCESS){
@@ -167,7 +170,6 @@ int ImageV1::readParents(fstream* file, I3C_Frame* frame)
 
             //cout << offset << endl;   //DEBUG
             //cout << index << endl;    //DEBUG
-            this->rotateMap(&map, level);
             frame->cubeMap[index] = map;
             frame->childCubeId[index] = offset;
             index++;
@@ -196,38 +198,45 @@ int ImageV1::readMap(fstream* file, unsigned char* ucMap, int* iNumOfPix)
     return I3C_SUCCESS;
 }
 
-void ImageV1::clearMapsAtLevel()
+void ImageV1::writeSideSize(fstream* file, I3C_Frame* frame)
 {
-    if(m_pi_mapsAtLevel!= NULL){
-        delete[] m_pi_mapsAtLevel;
-        m_pi_mapsAtLevel = NULL;
+    *file << frame->resolution << endl;
+}
+
+void ImageV1::writeMapsAtLevel(fstream* file, I3C_Frame* frame)
+{
+    for(int i = 0; i < frame->numberOfLevels; i++)
+    {
+        *file << frame->mapAtLevel[i] << endl;
     }
 }
 
-void ImageV1::rotateMap(unsigned char* ucMap, int quarters)
+int ImageV1::writePixels(fstream *file, I3C_Frame *frame)
 {
-    for(int i = 0; i < quarters; i++){
-        char tmp1 = *ucMap&0x01;
-        char tmp2 = *ucMap&0x02;
-        char tmp3 = *ucMap&0x04;
-        char tmp4 = *ucMap&0x08;
-        char tmp5 = *ucMap&0x10;
-        char tmp6 = *ucMap&0x20;
-        char tmp7 = *ucMap&0x40;
-        char tmp8 = *ucMap&0x80;
-//TODO: FIXME...
-        *ucMap = 0;
-        *ucMap |= (tmp1 << 0);
-        *ucMap |= (tmp2 << 0);
-        *ucMap |= (tmp3 << 0);
-        *ucMap |= (tmp4 << 0);
-        *ucMap |= (tmp5 >> 0);
-        *ucMap |= (tmp6 >> 0);
-        *ucMap |= (tmp7 >> 0);
-        *ucMap |= (tmp8 >> 0);
-//cout << quarters<< endl;
-      /*  *ucMap = 0;
-        *ucMap |= (tmp1 << 4);
-        *ucMap |= (tmp2 >> 4);*/
+    unsigned int pixelIndex = 0;
+    for(int i = 0; i < frame->mapAtLevel[0]; i++){
+        int iNumOfPix = numberHighBits(frame->cubeMap[i]);
+        *file << (int)frame->cubeMap[i] << endl;
+        if(iNumOfPix > 8){
+            return I3C_STRUCT_MAP_CORRUPTED;
+        }
+        for(int j = 0; j < iNumOfPix; j++){
+            if(pixelIndex > frame->pixelArraySize){
+                return I3C_STRUCT_PIXEL_CORRUPTED;
+            }
+            *file << (int)frame->pixel[pixelIndex].red << endl;
+            *file << (int)frame->pixel[pixelIndex].green << endl;
+            *file << (int)frame->pixel[pixelIndex].blue << endl;
+
+            pixelIndex++;
+        }
+    }
+    return I3C_SUCCESS;
+}
+
+void ImageV1::writeParents(fstream *file, I3C_Frame *frame)
+{
+    for(unsigned int i = frame->mapAtLevel[0]; i < frame->cubeMapArraySize; i++){
+        *file << (int)frame->cubeMap[i] << endl;
     }
 }

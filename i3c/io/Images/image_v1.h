@@ -30,15 +30,16 @@ private:
     int readMap(fstream* file, unsigned char* ucMap, int* iNumOfPix);
     int readParents(fstream* file, I3C_Frame* frame);
 
-    void clearMapsAtLevel();
+    void writeSideSize(fstream* file, I3C_Frame* frame);
+    void writeMapsAtLevel(fstream* file, I3C_Frame* frame);
+    int writePixels(fstream* file, I3C_Frame* frame);
+    void writeParents(fstream* file, I3C_Frame* frame);
 
-    void rotateMap(unsigned char* ucMap, int quarters);
 
 private:
     int m_i_sideSize;
     int m_i_numberOfLevels;
     int m_i_totalMaps;
-    int* m_pi_mapsAtLevel;
     int m_i_buffer;
 };
 

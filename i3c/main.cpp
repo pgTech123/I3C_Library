@@ -19,7 +19,12 @@ int main(int argc, char *argv[])
     //Actual program
     Tests test;
     //TODO: Select tests via argv
-    int appReturn = test.renderingEngine(argc, argv);
+    int appReturn = test.readWriteV1();
+    if(appReturn){
+        logs << "Test readWriteV1 failed with code: " << appReturn << endl;
+        return appReturn;
+    }
+    appReturn = test.renderingEngine(argc, argv);
 
     //END LOG
     time (&rawtime);

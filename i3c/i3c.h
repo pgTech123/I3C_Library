@@ -13,6 +13,8 @@
 #define I3C_ERR_COMPRESS_NOT_FOUND      2
 #define I3C_INVALID_IMAGE_SIZE          3
 #define I3C_FILE_CORRUPTED              4
+#define I3C_STRUCT_MAP_CORRUPTED        10
+#define I3C_STRUCT_PIXEL_CORRUPTED      11
 
 #define I3C_CANNOT_FIND_CONTEXT         101
 
@@ -50,8 +52,12 @@ public:
 class I3C_Frame: public std::mutex{
 
 public:
-    int resolution;
-    int numberOfLevels;
+    int resolution;         // Should be base 2
+    int numberOfLevels;     // resolution = 2^numberOfLevels
+
+    int *mapAtLevel;        // mapAtLevel[numberOfLevels] => each entry = number of map at level
+
+
     //Arrays
     Pixel* pixel;           //Can be NULL if |yuv_pixel| != NULL
     YUV_Pixels* yuv_pixel;  //NOT AN ARRAY

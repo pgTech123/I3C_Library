@@ -14,7 +14,7 @@ I3C_Write::~I3C_Write()
 
 int I3C_Write::open(const char* filename)
 {
-    m_file.open(filename, ios_base::out);
+    m_file.open(filename, ios_base::out | std::ofstream::trunc);
 
     //Check if file open
     if(!m_file.is_open()){
