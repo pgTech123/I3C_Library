@@ -60,8 +60,8 @@ public:
 
     //Arrays
     Pixel* pixel;           //Can be NULL if |yuv_pixel| != NULL
-    YUV_Pixels* yuv_pixel;  //NOT AN ARRAY
-    Reflexion_Pixels* reflexion_pixel;
+    //YUV_Pixels* yuv_pixel;  //NOT AN ARRAY
+    //Reflexion_Pixels* reflexion_pixel;
     unsigned char* cubeMap;
     unsigned int* childCubeId;
     //Array size

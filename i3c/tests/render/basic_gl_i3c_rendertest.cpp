@@ -4,7 +4,7 @@ Basic_GL_I3C_RenderTest::Basic_GL_I3C_RenderTest(QWidget* parent)
     :GL_Window(parent)
 {
     //"Elsa_512.i3c"   "camTest.i3c"    "1_plane.i3c"    "1_cube.i3c"    "2_plane.i3c"
-    m_GLI3CElement = new GL_I3C_Element("camTestWritten.i3c");
+    m_GLI3CElement = new GL_I3C_Element("camTest.i3c");
     m_GLI3CScene = new GL_I3C_Scene();
 }
 

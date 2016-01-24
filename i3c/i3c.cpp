@@ -42,7 +42,7 @@ void I3C_Frame::init()
     resolution = 0;
     mapAtLevel = NULL;
     pixel = NULL;
-    yuv_pixel = NULL;
+    //yuv_pixel = NULL;
     cubeMap = NULL;
     childCubeId = NULL;
     pixelArraySize = 0;
@@ -62,9 +62,9 @@ void I3C_Frame::clear()
     if(pixel != NULL){
         delete[] pixel;
     }
-    if(yuv_pixel != NULL){
+    /*if(yuv_pixel != NULL){
         delete yuv_pixel;
-    }
+    }*/
     if(cubeMap != NULL){
         delete[] cubeMap;
     }

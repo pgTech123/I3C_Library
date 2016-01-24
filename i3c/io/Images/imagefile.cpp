@@ -11,6 +11,7 @@ int ImageFile::readFrame(fstream *file, I3C_Frame* frame)
 
     //Formats
     ImageV1 imgV1;
+    ImageV2 imgV2;
     //<NEW FILE TYPE>: Instanciate your class here
 
     //Lock while frame is being read
@@ -19,8 +20,8 @@ int ImageFile::readFrame(fstream *file, I3C_Frame* frame)
         case(I3C_IMAGE_V1):
             error = imgV1.read(file, frame);
             break;
-        //case(I3C_IMAGE_V2):
-            // TODO: ReadV2(frame);
+        case(I3C_IMAGE_V2):
+            error = imgV2.read(file, frame);
         // <NEW FILE TYPE>: Add a case(|your new header|):
         //      error = your_new_function(frame);
         default:
@@ -37,6 +38,7 @@ int ImageFile::writeFrame(fstream *file, I3C_Frame* frame, int imgFormat)
 
     //Formats
     ImageV1 imgV1;
+    ImageV2 imgV2;
     //<NEW FILE TYPE>: Instanciate your class here
 
     frame->lock();
@@ -44,8 +46,8 @@ int ImageFile::writeFrame(fstream *file, I3C_Frame* frame, int imgFormat)
         case(I3C_IMAGE_V1):
             error = imgV1.write(file, frame);
             break;
-        //case(I3C_IMAGE_V2):
-            // TODO: ReadV2(frame);
+        case(I3C_IMAGE_V2):
+            error = imgV2.write(file, frame);
         // <NEW FILE TYPE>: Add a case(|your new header|):
         //      error = your_new_function(frame);
         default:
@@ -82,8 +84,20 @@ int ImageFile::readHeader(fstream *file)
         return I3C_IMAGE_V1;
     }
 
-    //Get version
-    int version;
-    file->read((char*)&version, 4);
+    //If not V1, get version
+    //Make sure we are at the begining of the file
+    file->clear();
+    file->seekg (0, ios::beg);
+
+    char header[9];
+    int version = I3C_IMAGE_UNDEFINED_VERSION;
+    file->read(header, 8);
+    header[8] = '\0';
+
+    if(strncmp(header, I3C_IMAGE_V2_HEADER, 8) == 0){
+        version = I3C_IMAGE_V2;
+    }
+    // <NEW FILE TYPE>: Add a if(strncmp(header, [YOUR HEADER], 8)):
+
     return version;
 }

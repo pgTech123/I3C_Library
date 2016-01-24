@@ -15,15 +15,19 @@
 
 #include <stdio.h>
 #include <fstream>
+#include <string>
 
 #include "../../i3c.h"
 #include "image_v1.h"
+#include "image_v2.h"
 
 // Header ID
 // WARNING: Image Header id must NOT interfere with Video Header id
-#define I3C_IMAGE_V1    0x00000000  //Special case: No header in this file
-#define I3C_IMAGE_V2    0x00000001
+#define I3C_IMAGE_V1                    0x00000000  //Special case: No header in this file
+#define I3C_IMAGE_V2                    0x00000001
+#define I3C_IMAGE_V2_HEADER             "I3CIMGV2"
 // <NEW FILE TYPE>: Additionnal Header ID must be added here...
+#define I3C_IMAGE_UNDEFINED_VERSION     0xFFFFFFFF
 
 using namespace std;
 

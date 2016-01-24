@@ -15,6 +15,8 @@ public:
 
     int renderingEngine(int argc, char *argv[]);
     int readWriteV1();
+    int readV1WriteV2();
+    int readV2WriteV1();
 };
 
 #endif // TESTS_H

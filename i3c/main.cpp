@@ -18,12 +18,27 @@ int main(int argc, char *argv[])
 
     //Actual program
     Tests test;
+    int appReturn;
     //TODO: Select tests via argv
-    int appReturn = test.readWriteV1();
+/*
+    appReturn = test.readWriteV1();
     if(appReturn){
         logs << "Test readWriteV1 failed with code: " << appReturn << endl;
         return appReturn;
     }
+*/
+    appReturn = test.readV1WriteV2();
+    if(appReturn){
+        logs << "Test readV1WriteV2 failed with code: " << appReturn << endl;
+        return appReturn;
+    }
+
+    appReturn = test.readV2WriteV1();
+    if(appReturn){
+        logs << "Test readV2WriteV1 failed with code: " << appReturn << endl;
+        return appReturn;
+    }
+
     appReturn = test.renderingEngine(argc, argv);
 
     //END LOG
