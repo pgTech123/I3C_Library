@@ -27,6 +27,7 @@ int ImageV2::write(fstream* file, I3C_Frame* frame)
     this->writeHeader(file);
     this->writeResolution(file, frame);
     this->writeMapAtLevel(file, frame);
+    this->writeAverageYUV(file, frame);
 
     return I3C_SUCCESS;
 }
@@ -101,4 +102,18 @@ void ImageV2::writeMapAtLevel(fstream* file, I3C_Frame* frame)
         numberOfPixels += numberHighBits(frame->cubeMap[i]);
     }
     file->write(reinterpret_cast<const char *>(&numberOfPixels), 4);
+}
+
+void ImageV2::writeAverageYUV(fstream* file, I3C_Frame* frame)
+{
+    YUV yuv_avg;
+    I3C_Converter::getAverageYUVfromPixels(frame->pixel, frame->pixelArraySize, &yuv_avg);
+
+    //cout << "Y = " << (int)yuv_avg.Y << endl;
+    //cout << "U = " << (int)yuv_avg.U << endl;
+    //cout << "V = " << (int)yuv_avg.V << endl;
+
+    file->write(reinterpret_cast<const char *>(&yuv_avg.Y), 1);
+    file->write(reinterpret_cast<const char *>(&yuv_avg.U), 1);
+    file->write(reinterpret_cast<const char *>(&yuv_avg.V), 1);
 }

@@ -13,6 +13,7 @@
 #define I3C_ERR_COMPRESS_NOT_FOUND      2
 #define I3C_INVALID_IMAGE_SIZE          3
 #define I3C_FILE_CORRUPTED              4
+
 #define I3C_STRUCT_MAP_CORRUPTED        10
 #define I3C_STRUCT_PIXEL_CORRUPTED      11
 
@@ -24,24 +25,24 @@ struct Pixel{
     unsigned char blue;
 };
 
-class YUV_Pixels{
-
-public:
-    unsigned char* Y;
-    unsigned char* U;
-    unsigned char* V;
-
-    YUV_Pixels();
-    ~YUV_Pixels();
-    void clear();
-
-private:
-    void init();
+struct YUV{
+    unsigned char Y;
+    unsigned char U;
+    unsigned char V;
 };
 
+struct YUV_Diff{
+    //Y: 2 bits
+    //U: 3 bits
+    //V: 3 bits
+};
 
-class Reflexion_Pixels{
-public:
+struct UV_Diff{
+    //U: 4 bits
+    //V: 4 bits
+};
+
+struct Reflexion_Pixels{
     char theta;
     char phi;
     char magnetude;
@@ -60,7 +61,7 @@ public:
 
     //Arrays
     Pixel* pixel;           //Can be NULL if |yuv_pixel| != NULL
-    //YUV_Pixels* yuv_pixel;  //NOT AN ARRAY
+    //YUV_Pixels* yuv_pixel;
     //Reflexion_Pixels* reflexion_pixel;
     unsigned char* cubeMap;
     unsigned int* childCubeId;

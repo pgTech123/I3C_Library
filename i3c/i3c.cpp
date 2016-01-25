@@ -1,36 +1,5 @@
 #include "i3c.h"
 
-YUV_Pixels::YUV_Pixels()
-{
-    init();
-}
-
-void YUV_Pixels::init()
-{
-    Y = NULL;
-    U = NULL;
-    V = NULL;
-}
-
-YUV_Pixels::~YUV_Pixels()
-{
-    clear();
-}
-
-void YUV_Pixels::clear()
-{
-    if(Y != NULL){
-        delete[] Y;
-    }
-    if(U != NULL){
-        delete[] U;
-    }
-    if(V != NULL){
-        delete[] V;
-    }
-    init();
-}
-
 
 I3C_Frame::I3C_Frame():std::mutex()
 {

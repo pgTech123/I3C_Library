@@ -41,7 +41,8 @@ SOURCES += \
     tests/render/gl_window.cpp \
     tests/render/basic_gl_i3c_rendertest.cpp \
     render/i3c_transform.cpp \
-    io/Images/image_v2.cpp
+    io/Images/image_v2.cpp \
+    utils/i3c_converter.cpp
 
 HEADERS += \
     i3c.h \
@@ -58,7 +59,8 @@ HEADERS += \
     tests/render/basic_gl_i3c_rendertest.h \
     render/i3c_transform.h \
     utils/logs.h \
-    io/Images/image_v2.h
+    io/Images/image_v2.h \
+    utils/i3c_converter.h
 
 DISTFILES += \
     render/cl_sources/video.cl\
