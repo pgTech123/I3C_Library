@@ -36,6 +36,8 @@ private:
     void writeResolution(fstream* file, I3C_Frame* frame);
     void writeMapAtLevel(fstream* file, I3C_Frame* frame);
     void writeAverageYUV(fstream* file, I3C_Frame* frame);
+
+    void convertRGB2YUV(I3C_Frame* frame, YUV* yuvPixels);
 };
 
 #endif // IMAGEV2_H

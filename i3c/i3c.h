@@ -35,11 +35,13 @@ struct YUV_Diff{
     //Y: 2 bits
     //U: 3 bits
     //V: 3 bits
+    signed char Y : 2, U : 3, V : 3;
 };
 
 struct UV_Diff{
     //U: 4 bits
     //V: 4 bits
+    signed char U : 4, V : 4;
 };
 
 struct Reflexion_Pixels{

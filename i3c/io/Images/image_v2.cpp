@@ -29,6 +29,13 @@ int ImageV2::write(fstream* file, I3C_Frame* frame)
     this->writeMapAtLevel(file, frame);
     this->writeAverageYUV(file, frame);
 
+//FIXME: manage potential errors
+    YUV* yuv_pix = new YUV[frame->pixelArraySize];
+    this->convertRGB2YUV(frame, yuv_pix);
+
+    delete yuv_pix;
+//END FIXME
+
     return I3C_SUCCESS;
 }
 
@@ -116,4 +123,11 @@ void ImageV2::writeAverageYUV(fstream* file, I3C_Frame* frame)
     file->write(reinterpret_cast<const char *>(&yuv_avg.Y), 1);
     file->write(reinterpret_cast<const char *>(&yuv_avg.U), 1);
     file->write(reinterpret_cast<const char *>(&yuv_avg.V), 1);
+}
+
+void ImageV2::convertRGB2YUV(I3C_Frame* frame, YUV* yuvPixels)
+{
+    for(int i = 0; i < frame->pixelArraySize; i++){
+        I3C_Converter::Pixel2YUV(&frame->pixel[i], &yuvPixels[i]);
+    }
 }
