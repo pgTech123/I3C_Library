@@ -1,3 +1,5 @@
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include "i3c_transform.h"
 #include "math.h"
 
@@ -152,3 +154,5 @@ void projectObject(ObjectBoundaries* transformedObject, ScreenBoundaries* screen
     screenBound->w = w;
     screenBound->h = h;
 }
+
+#endif

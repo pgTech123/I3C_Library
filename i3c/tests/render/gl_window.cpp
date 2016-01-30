@@ -1,3 +1,4 @@
+#ifdef I3C_RENDER_MODULE_ENABLED
 #include "gl_window.h"
 
 GL_Window::GL_Window(QWidget* parent)
@@ -38,3 +39,5 @@ void GL_Window::quitWindow()
     fclose (m_p_logFile);
     fclose (m_p_errorFile);*/
 }
+
+#endif

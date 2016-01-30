@@ -1,3 +1,5 @@
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include "gl_i3c_scene.h"
 
 GL_I3C_Scene::GL_I3C_Scene()
@@ -385,3 +387,5 @@ void GL_I3C_Scene::loadOCLSources()
 
     m_clSources = strdup(oss.str().c_str());
 }
+
+#endif

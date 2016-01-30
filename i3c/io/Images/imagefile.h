@@ -13,8 +13,9 @@
 #ifndef IMAGEFILE_H
 #define IMAGEFILE_H
 
-#include <stdio.h>
 #include <fstream>
+#include <stdio.h>
+#include <cstring>
 #include <string>
 
 #include "../../i3c.h"

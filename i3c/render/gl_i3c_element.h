@@ -11,6 +11,8 @@
 #ifndef GL_I3C_ELEMENT_H
 #define GL_I3C_ELEMENT_H
 
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include <GL/glut.h>
 #include "CL/cl.h"
 #include <CL/cl_gl.h>
@@ -143,5 +145,7 @@ private:
     cl_mem m_clDiffCubesMap;
     cl_mem m_clDiffChildId;
 };
+
+#endif
 
 #endif // GL_I3C_ELEMENT_H

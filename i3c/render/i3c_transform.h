@@ -7,6 +7,8 @@
 #ifndef I3C_TRANSFORM_H
 #define I3C_TRANSFORM_H
 
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include <iostream>
 using namespace std;
 
@@ -85,5 +87,7 @@ void projectObject(ObjectBoundaries* originalCoord, ScreenBoundaries* screenBoun
 /*#ifdef __cplusplus
 }
 #endif*/
+
+#endif
 
 #endif // I3C_TRANSFORM_H

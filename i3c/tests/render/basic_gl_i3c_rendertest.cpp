@@ -1,3 +1,4 @@
+#ifdef I3C_RENDER_MODULE_ENABLED
 #include "basic_gl_i3c_rendertest.h"
 
 Basic_GL_I3C_RenderTest::Basic_GL_I3C_RenderTest(QWidget* parent)
@@ -241,3 +242,5 @@ void Basic_GL_I3C_RenderTest::deleteFBO()
     glDeleteTextures(1, &m_renderedTexture);
     glDeleteTextures(1, &m_depthTexture);
 }
+
+#endif

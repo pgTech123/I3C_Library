@@ -1,6 +1,8 @@
 #ifndef BASIC_GL_I3C_RENDERTEST_H
 #define BASIC_GL_I3C_RENDERTEST_H
 
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -131,5 +133,6 @@ private:
     GLuint m_depthTexture;
 };
 
+#endif
 
 #endif // BASIC_GL_I3C_RENDERTEST_H

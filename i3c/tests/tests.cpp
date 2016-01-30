@@ -4,6 +4,7 @@ Tests::Tests()
 {
 }
 
+#ifdef I3C_RENDER_MODULE_ENABLED
 int Tests::renderingEngine(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -22,6 +23,7 @@ int Tests::renderingEngine(int argc, char *argv[])
 
     return a.exec();
 }
+#endif
 
 int Tests::readWriteV1()
 {

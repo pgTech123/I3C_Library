@@ -13,7 +13,9 @@ class Tests
 public:
     Tests();
 
+#ifdef    I3C_RENDER_MODULE_ENABLED
     int renderingEngine(int argc, char *argv[]);
+#endif
     int readWriteV1();
     int readV1WriteV2();
     int readV2WriteV1();

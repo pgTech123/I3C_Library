@@ -6,6 +6,8 @@
 #ifndef GL_I3C_SCENE_H
 #define GL_I3C_SCENE_H
 
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include <Windows.h>
 #include <iostream>
 #include <fstream>
@@ -128,5 +130,7 @@ private:
     //LookAt
     Mat4x4 m_transformMatrix;
 };
+
+#endif
 
 #endif // GL_I3C_SCENE_H

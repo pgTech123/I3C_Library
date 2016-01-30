@@ -1,7 +1,9 @@
+CONFIG += c++11
 QT += opengl
 QT += core
 QT += gui
 QT += widgets
+
 
 INCLUDEPATH += "$$PWD/external/OpenCL/include"
 LIBS += "-L$$PWD\external\OpenCL\lib\x86" -lOpenCL
@@ -13,7 +15,12 @@ DESTDIR_WIN = $${OUT_PWD}
 PWD_WIN ~= s,/,\\,g
 DESTDIR_WIN ~= s,/,\\,g
 
-copyfiles.commands = $$quote(cmd /c xcopy /S /Y /I $${PWD_WIN}\\render\\cl_sources $${DESTDIR_WIN}\\cl_sources)
+win32 {
+    copyfiles.commands = $$quote(cmd /c xcopy /S /Y /I $${PWD_WIN}\\render\\cl_sources $${DESTDIR_WIN}\\cl_sources)
+}
+!win32 {
+#    copyfiles.commands = $$quote(cp $${PWD_WIN}\\render\\cl_sources $${DESTDIR_WIN}\\cl_sources)
+}
 
 QMAKE_EXTRA_TARGETS += copyfiles
 POST_TARGETDEPS += copyfiles
@@ -21,10 +28,15 @@ POST_TARGETDEPS += copyfiles
 
 
 # Copy Sample to Output
-copysample.commands = $$quote(cmd /c xcopy /S /Y /I $${PWD_WIN}\\i3c_sample $${DESTDIR_WIN}\\)
+win32 {
+    copysample.commands = $$quote(cmd /c xcopy /S /Y /I $${PWD_WIN}\\i3c_sample $${DESTDIR_WIN}\\)
+}
+!win32 {
+    #copysample.commands = $$quote(cp $${PWD_WIN}\\i3c_sample $${DESTDIR_WIN}\\)
+}
+
 QMAKE_EXTRA_TARGETS += copysample
 POST_TARGETDEPS += copysample
-
 
 SOURCES += \
     main.cpp \

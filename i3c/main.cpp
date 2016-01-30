@@ -2,9 +2,16 @@
 //Creation date:
 //Description:      Tests the I3C Librairy
 
+// Select modules:
+
+//#define     I3C_RENDER_MODULE_ENABLED     // required: OpenCL, OpenGL, Windows
+#define     I3C_EDITING_MODULE_ENABLED
+
+
 #include <time.h>
 #include "tests/tests.h"
 #include "utils/logs.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -20,13 +27,13 @@ int main(int argc, char *argv[])
     Tests test;
     int appReturn;
     //TODO: Select tests via argv
-/*
+
     appReturn = test.readWriteV1();
     if(appReturn){
         logs << "Test readWriteV1 failed with code: " << appReturn << endl;
         return appReturn;
     }
-*/
+
     appReturn = test.readV1WriteV2();
     if(appReturn){
         logs << "Test readV1WriteV2 failed with code: " << appReturn << endl;
@@ -39,7 +46,9 @@ int main(int argc, char *argv[])
         return appReturn;
     }
 
+#ifdef I3C_RENDER_MODULE_ENABLED
     appReturn = test.renderingEngine(argc, argv);
+#endif
 
     //END LOG
     time (&rawtime);

@@ -1,6 +1,8 @@
 #ifndef GL_WINDOW_H
 #define GL_WINDOW_H
 
+#ifdef I3C_RENDER_MODULE_ENABLED
+
 #include <stdio.h>
 
 #include <QSurfaceFormat>
@@ -35,5 +37,7 @@ protected:
 private:
     QTimer m_refreshTimer;
 };
+
+#endif
 
 #endif // GL_WINDOW_H
