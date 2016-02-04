@@ -1,7 +1,7 @@
-#ifdef I3C_RENDER_MODULE_ENABLED
-
 #include "i3c_transform.h"
 #include "math.h"
+
+#ifdef I3C_RENDER_MODULE_ENABLED
 
 void matFromPosAndRot(Mat4x4* transformMatrix, Position position, Axis rotation)
 {

@@ -89,6 +89,16 @@ private:
     void init();
 };
 
+class I3C_Frame_YUV_Diff: public std::mutex{
+
+public:
+    // General
+    int resolution;
+    int numberOfLevels;
+
+
+};
+
 
 
 #endif // I3C_H

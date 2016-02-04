@@ -54,7 +54,9 @@ SOURCES += \
     tests/render/basic_gl_i3c_rendertest.cpp \
     render/i3c_transform.cpp \
     io/Images/image_v2.cpp \
-    utils/i3c_converter.cpp
+    utils/i3c_converter.cpp \
+    editing/i3c_cube.cpp \
+    editing/i3c_editingcube.cpp
 
 HEADERS += \
     i3c.h \
@@ -72,12 +74,19 @@ HEADERS += \
     render/i3c_transform.h \
     utils/logs.h \
     io/Images/image_v2.h \
-    utils/i3c_converter.h
+    utils/i3c_converter.h \
+    editing/i3c_cube.h \
+    editing/i3c_editingcube.h
 
 DISTFILES += \
     render/cl_sources/video.cl\
     render/cl_sources/clear.cl\
     render/cl_sources/rendering.cl
+
+OTHER_FILES += \
+    render/cl_sources/video.cl \
+    render/cl_sources/rendering.cl \
+    render/cl_sources/clear.cl
 
 
 

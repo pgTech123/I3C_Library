@@ -1,6 +1,6 @@
-#ifdef I3C_RENDER_MODULE_ENABLED
-
 #include "gl_i3c_scene.h"
+
+#ifdef I3C_RENDER_MODULE_ENABLED
 
 GL_I3C_Scene::GL_I3C_Scene()
 {

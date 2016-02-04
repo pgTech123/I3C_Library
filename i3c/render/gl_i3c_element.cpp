@@ -1,6 +1,6 @@
-#ifdef I3C_RENDER_MODULE_ENABLED
-
 #include "gl_i3c_element.h"
+
+#ifdef I3C_RENDER_MODULE_ENABLED
 
 GL_I3C_Element::GL_I3C_Element()
 {

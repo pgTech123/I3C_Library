@@ -7,7 +7,6 @@
 //#define     I3C_RENDER_MODULE_ENABLED     // required: OpenCL, OpenGL, Windows
 #define     I3C_EDITING_MODULE_ENABLED
 
-
 #include <time.h>
 #include "tests/tests.h"
 #include "utils/logs.h"
