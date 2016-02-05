@@ -26,19 +26,11 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
         m_avgPixel = pixel;
     }
     else{
-        int halfWidth = m_width/2;
-        unsigned char cube = 0;
-
-        //TODO: Figure out cube
-
-        //Update position for child call
-        x = RECENTER(x, halfWidth);
-        y = RECENTER(y, halfWidth);
-        z = RECENTER(z, halfWidth);
+        unsigned char cube = this->cubeId(&x, &y, &z);
 
         if((m_map & (0x01 << cube)) == 0){
             //Child cube did not exist so we create it
-            m_childCube[cube] = new I3C_EditingCube(halfWidth);
+            m_childCube[cube] = new I3C_EditingCube(m_width/2);
 
             //Update map
             m_map &= (0x01 << cube);
@@ -51,11 +43,39 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
 void I3C_EditingCube::removeCube(int x, int y, int z)
 {
     //If cube empty: delete
+    //TODO
 }
 
 void I3C_EditingCube::getPixelAt(int x, int y, int z, Pixel* pixel)
 {
     //TODO
+}
+
+unsigned char I3C_EditingCube::cubeId(int* x, int* y, int* z)
+{
+    unsigned char cube = 0;
+    int halfWidth = m_width/2;
+
+    //Figure out cube
+    if(*y < halfWidth){
+        cube += 4;
+    }
+    if(*z < halfWidth){
+        cube += 2;
+    }
+    if(*z > halfWidth && *x < halfWidth){
+        cube += 1;
+    }
+    if(*z < halfWidth && *x > halfWidth){
+        cube += 1;
+    }
+
+    //Update position for child call
+    *x = RECENTER(*x, halfWidth);
+    *y = RECENTER(*y, halfWidth);
+    *z = RECENTER(*z, halfWidth);
+
+    return cube;
 }
 
 //#endif

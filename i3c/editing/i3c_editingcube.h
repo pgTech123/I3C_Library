@@ -20,6 +20,9 @@ public:
     void getPixelAt(int x, int y, int z, Pixel* pixel);
 
 private:
+    unsigned char cubeId(int* x, int* y, int* z);
+
+private:
     int m_width;  //in pixels
     unsigned char m_map;
     I3C_EditingCube* m_childCube[8];
