@@ -16,10 +16,10 @@ public:
     I3C_Cube(int width=DEFAULT_CUBE_WIDTH);
     ~I3C_Cube();
 
-    void cube2rgb();
-    void cube2yuv();
-    void rgb2cube();
-    void yuv2cube();
+    void cube2rgb(I3C_Frame *rgbFrame);
+    void cube2yuv(/*TODO*/);
+    void rgb2cube(I3C_Frame *rgbFrame);
+    void yuv2cube(/*TODO*/);
 
 private:
 

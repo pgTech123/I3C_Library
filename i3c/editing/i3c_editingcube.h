@@ -19,8 +19,13 @@ public:
     void removeCube(int x, int y, int z);
     void getPixelAt(int x, int y, int z, Pixel* pixel);
 
+    void propageteAverage();
+    unsigned char getMap();
+    Pixel getAverage();
+
 private:
     unsigned char cubeId(int* x, int* y, int* z);
+    void deleteChild(unsigned char cubeId);
 
 private:
     int m_width;  //in pixels
@@ -28,6 +33,7 @@ private:
     I3C_EditingCube* m_childCube[8];
 
     Pixel m_avgPixel;
+    bool m_avgPxIsSet;
 };
 //#endif
 #endif // I3C_EDITINGCUBE_H

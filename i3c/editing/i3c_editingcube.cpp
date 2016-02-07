@@ -5,10 +5,12 @@
 I3C_EditingCube::I3C_EditingCube(int width)
 {
     m_width = width;
+    m_avgPxIsSet = false;
 
     for(int i = 0; i < 8; i++){
         m_childCube[i] = NULL;
     }
+    m_map = 0;
 }
 
 I3C_EditingCube::~I3C_EditingCube()
@@ -18,6 +20,7 @@ I3C_EditingCube::~I3C_EditingCube()
             delete m_childCube[i];
         }
     }
+    m_map = 0;
 }
 
 void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
@@ -26,6 +29,7 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
         m_avgPixel = pixel;
     }
     else{
+        m_avgPxIsSet = false;
         unsigned char cube = this->cubeId(&x, &y, &z);
 
         if((m_map & (0x01 << cube)) == 0){
@@ -42,13 +46,79 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
 
 void I3C_EditingCube::removeCube(int x, int y, int z)
 {
-    //If cube empty: delete
-    //TODO
+    unsigned char cube = this->cubeId(&x, &y, &z);
+
+    // Make sure that there is something there
+    if(m_childCube[cube] != NULL){
+
+        // If child is a pixel, delete it
+        if(m_width == 2){
+            this->deleteChild(cube);
+            return;
+        }
+
+        // If child is not a pixel, call remove on child
+        m_childCube[cube]->removeCube(x, y, z);
+
+        // If child empty, delete child
+        if(m_childCube[cube]->getMap() == 0){
+            this->deleteChild(cube);
+            return;
+        }
+    }
 }
 
 void I3C_EditingCube::getPixelAt(int x, int y, int z, Pixel* pixel)
 {
-    //TODO
+    if(m_width == 1){
+        *pixel = m_avgPixel;
+        return;
+    }
+
+    unsigned char cube = this->cubeId(&x, &y, &z);
+    if(m_childCube[cube] != NULL){
+        m_childCube[cube]->getPixelAt(x, y, z, pixel);
+        return;
+    }
+    (*pixel).red = 0;
+    (*pixel).green = 0;
+    (*pixel).blue = 0;
+    return;
+}
+
+void I3C_EditingCube::propageteAverage()
+{
+    if(m_width > 2){
+        propageteAverage();
+    }
+    int sum = 0;
+    int redTot = 0, greenTot = 0, blueTot = 0;
+
+    //Compute average
+    for(int i = 0; i < 8; i++){
+        if((m_map & (0x01 << i)) != 0){
+            sum++;
+            Pixel pix = m_childCube[i]->getAverage();
+            redTot += pix.red;
+            greenTot += pix.green;
+            blueTot +=pix.blue;
+        }
+    }
+    //Update average
+    m_avgPixel.red = redTot/sum;
+    m_avgPixel.green = greenTot/sum;
+    m_avgPixel.blue = blueTot/sum;
+    m_avgPxIsSet = true;
+}
+
+unsigned char I3C_EditingCube::getMap()
+{
+    return m_map;
+}
+
+Pixel I3C_EditingCube::getAverage()
+{
+    return m_avgPixel;
 }
 
 unsigned char I3C_EditingCube::cubeId(int* x, int* y, int* z)
@@ -76,6 +146,14 @@ unsigned char I3C_EditingCube::cubeId(int* x, int* y, int* z)
     *z = RECENTER(*z, halfWidth);
 
     return cube;
+}
+
+void I3C_EditingCube::deleteChild(unsigned char cubeId)
+{
+    delete m_childCube[cubeId];
+    m_childCube[cubeId] = NULL;
+    m_map &= ~(0x01 << cubeId);
+    return;
 }
 
 //#endif
