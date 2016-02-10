@@ -27,8 +27,10 @@ private:
     unsigned char cubeId(int* x, int* y, int* z);
     void deleteChild(unsigned char cubeId);
 
-private:
+protected:
     int m_width;  //in pixels
+
+private:
     unsigned char m_map;
     I3C_EditingCube* m_childCube[8];
 
