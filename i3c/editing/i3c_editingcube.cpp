@@ -86,6 +86,11 @@ void I3C_EditingCube::getPixelAt(int x, int y, int z, Pixel* pixel)
     return;
 }
 
+void I3C_EditingCube::setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned int* childCubeId, int myID)
+{
+    //TODO
+}
+
 void I3C_EditingCube::propageteAverage()
 {
     if(m_width > 2){

@@ -1,3 +1,7 @@
+//Author:           Pascal Gendron
+//Creation date:    Febuary 6th 2016
+//Description:      Definition of cubes composing an I3C Editing Object
+
 #ifndef I3C_EDITINGCUBE_H
 #define I3C_EDITINGCUBE_H
 
@@ -18,6 +22,8 @@ public:
     void addCube(int x, int y, int z, Pixel pixel);
     void removeCube(int x, int y, int z);
     void getPixelAt(int x, int y, int z, Pixel* pixel);
+
+    void setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned int* childCubeId, int myID);
 
     void propageteAverage();
     unsigned char getMap();
