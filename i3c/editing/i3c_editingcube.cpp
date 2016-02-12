@@ -37,7 +37,7 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
             m_childCube[cube] = new I3C_EditingCube(m_width/2);
 
             //Update map
-            m_map &= (0x01 << cube);
+            m_map |= (0x01 << cube);
         }
         //Call addCube on child
         m_childCube[cube]->addCube(x, y, z, pixel);
@@ -86,9 +86,24 @@ void I3C_EditingCube::getPixelAt(int x, int y, int z, Pixel* pixel)
     return;
 }
 
-void I3C_EditingCube::setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned int* childCubeId, int myID)
+void I3C_EditingCube::setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned int* childCubeId, int myId)
 {
-    //TODO
+    if(m_width == 1){
+        //Pixel child
+        m_avgPixel = pixel[myId];
+        m_avgPxIsSet = true;
+        return;
+    }
+    for(int i = 0; i < 8; i++){
+        if((cubeMap[myId] & (0x01 << i)) != 0){
+            if(m_map &= (0x01 << i) != 0){
+                delete m_childCube[i];
+            }
+            m_map |= (0x01 << i);
+            m_childCube[i] = new I3C_EditingCube(m_width/2);
+            m_childCube[i]->setCubes(pixel, cubeMap, childCubeId, childCubeId[myId+i]);
+        }
+    }
 }
 
 void I3C_EditingCube::propageteAverage()
@@ -124,6 +139,37 @@ unsigned char I3C_EditingCube::getMap()
 Pixel I3C_EditingCube::getAverage()
 {
     return m_avgPixel;
+}
+
+int I3C_EditingCube::getChildCount()
+{
+    if(m_width > 1){
+        int count = 0;
+        for(int i = 0; i < 8; i++){
+            if((m_map& (0x01 << i)) != 0){
+                count += m_childCube[i]->getChildCount();
+            }
+        }
+        count ++;   //Count ourself
+        return count;
+    }
+    else{
+        return 0;
+    }
+}
+
+int I3C_EditingCube::getPixelCount()
+{
+    if(m_width == 2){
+        return numberHighBits(m_map);
+    }
+    int count = 0;
+    for(int i = 0; i < 8; i++){
+        if((m_map& (0x01 << i)) != 0){
+            count += m_childCube[i]->getPixelCount();
+        }
+    }
+    return count;
 }
 
 unsigned char I3C_EditingCube::cubeId(int* x, int* y, int* z)

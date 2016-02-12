@@ -74,10 +74,22 @@ void I3C_Cube::resetEditingCube(int resolution)
 
 void I3C_Cube::cube2rgb(I3C_Frame *rgbFrame)
 {
+    rgbFrame->clear();
+
     rgbFrame->resolution = m_width;
     rgbFrame->numberOfLevels = firstHighBit(m_width);
 
-    //TODO
+    //Allocate arrays
+    rgbFrame->mapAtLevel = new int[rgbFrame->numberOfLevels];
+
+    rgbFrame->pixelArraySize = m_editingCube->getPixelCount();
+    rgbFrame->cubeMapArraySize = m_editingCube->getChildCount();
+
+    rgbFrame->pixel = new Pixel[rgbFrame->pixelArraySize];
+    rgbFrame->cubeMap = new unsigned char[rgbFrame->cubeMapArraySize];
+    rgbFrame->childCubeId = new unsigned int[rgbFrame->cubeMapArraySize];
+
+    //TODO: fill arrays
 }
 
 void I3C_Cube::cube2yuv(/*TODO*/)

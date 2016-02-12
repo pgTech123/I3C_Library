@@ -8,6 +8,7 @@
 //#ifdef I3C_EDITING_MODULE_ENABLED
 
 #include "i3c.h"
+#include "../../../utils/binary_func.h"
 #include <iostream>
 using namespace std;
 
@@ -28,6 +29,9 @@ public:
     void propageteAverage();
     unsigned char getMap();
     Pixel getAverage();
+
+    int getChildCount();
+    int getPixelCount();
 
 private:
     unsigned char cubeId(int* x, int* y, int* z);
