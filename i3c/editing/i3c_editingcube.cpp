@@ -27,6 +27,7 @@ void I3C_EditingCube::addCube(int x, int y, int z, Pixel pixel)
 {
     if(m_width == 1){
         m_avgPixel = pixel;
+        m_avgPxIsSet = true;
     }
     else{
         m_avgPxIsSet = false;
@@ -71,7 +72,13 @@ void I3C_EditingCube::removeCube(int x, int y, int z)
 void I3C_EditingCube::getPixelAt(int x, int y, int z, Pixel* pixel)
 {
     if(m_width == 1){
-        *pixel = m_avgPixel;
+        if(m_avgPxIsSet){
+            *pixel = m_avgPixel;
+        }else{
+            (*pixel).red = 0;
+            (*pixel).green = 0;
+            (*pixel).blue = 0;
+        }
         return;
     }
 

@@ -6,7 +6,7 @@ TestEditing::TestEditing()
 
 int TestEditing::testWritingReading()
 {
-    const char* filenameR = TEST_FILE;
+    const char* filenameR = TEST_FILE_IN;
 
     I3C_Read i3cFileR;
     I3C_Frame frame;
@@ -91,8 +91,45 @@ int TestEditing::testWritingReading()
         }
     }
 
+    I3C_Write i3cFileW;
+    error = i3cFileW.open(TEST_FILE_OUT);
+    if(error == I3C_SUCCESS){
+        i3cFileW.writeImage(&frameReturned, I3C_IMAGE_V1);
+    }
+    i3cFileW.close();
+
     logs << "Editing Cubes test: Pass" << endl;
 
     return error;
 }
 
+int TestEditing::testDrawing()
+{
+    I3C_Cube editingCube(128);
+    I3C_Frame frame;
+    Pixel pix;
+
+    pix.red = 50;
+    pix.green = 255;
+    pix.blue = 0;
+    editingCube.addPixel(50, 50, 50, pix);
+
+    pix.red = 255;
+    pix.green = 255;
+    pix.blue = 255;
+    editingCube.addPixel(5, 125, 50, pix);
+
+    pix.red = 50;
+    pix.green = 0;
+    pix.blue = 255;
+    editingCube.addPixel(90, 80, 0, pix);
+
+    editingCube.cube2rgb(&frame);
+
+    I3C_Write i3cFileW;
+    int error = i3cFileW.open(TEST_DRAWING_OUT);
+    if(error == I3C_SUCCESS){
+        i3cFileW.writeImage(&frame, I3C_IMAGE_V1);
+    }
+    i3cFileW.close();
+}

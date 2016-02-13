@@ -153,6 +153,7 @@ int Tests::testEditing()
 {
     TestEditing editingTests;
     editingTests.testWritingReading();
+    editingTests.testDrawing();
 
     return 0;
 }
