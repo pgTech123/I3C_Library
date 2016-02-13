@@ -112,6 +112,59 @@ void I3C_EditingCube::setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned in
     m_map = map;
 }
 
+int I3C_EditingCube::fillMapArray(unsigned char* mapArray, unsigned int currentId, int depth)
+{
+    if(currentId < 0){
+        return -1;
+    }
+    if(depth <= 0){
+        //Update who we are
+        mapArray[currentId] = m_map;
+        return currentId-1;
+    }
+    else{
+        depth--;    //We are 1 layer deeper
+
+        //We are asked to update one of our child
+        for(int i = 7; i >= 0; i--){
+            if((m_map & (0x01 << i)) != 0){
+                currentId = m_childCube[i]->fillMapArray(mapArray, currentId, depth);
+            }
+        }
+        return currentId;
+    }
+}
+
+int I3C_EditingCube::fillPixelArray(Pixel* pixelArray, unsigned int currentId, int depth)
+{
+    if(currentId < 0){
+        return -1;
+    }
+    if(depth <= 0){
+        //Update who we are
+        if(m_avgPxIsSet){
+            pixelArray[currentId] = m_avgPixel;
+        }
+        else{
+            pixelArray[currentId].red = 0;
+            pixelArray[currentId].green = 0;
+            pixelArray[currentId].blue = 0;
+        }
+        return currentId-1;
+    }
+    else{
+        depth--;    //We are 1 layer deeper
+
+        //We are asked to update one of our child
+        for(int i = 7; i >= 0; i--){
+            if((m_map & (0x01 << i)) != 0){
+                currentId = m_childCube[i]->fillPixelArray(pixelArray, currentId, depth);
+            }
+        }
+        return currentId;
+    }
+}
+
 void I3C_EditingCube::propageteAverage()
 {
     if(m_width > 2){

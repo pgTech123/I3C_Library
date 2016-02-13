@@ -90,9 +90,32 @@ void I3C_Cube::cube2rgb(I3C_Frame *rgbFrame)
     rgbFrame->cubeMap = new unsigned char[rgbFrame->cubeMapArraySize];
     rgbFrame->childCubeId = new unsigned int[rgbFrame->cubeMapArraySize];
 
+    //Get Pixels
+    m_editingCube->fillPixelArray(rgbFrame->pixel, rgbFrame->pixelArraySize-1, rgbFrame->numberOfLevels);
 
+    //Get Maps
+    int id = rgbFrame->cubeMapArraySize-1;
+    int idInitial;
+    for(int i = 0; i < rgbFrame->numberOfLevels; i++){
+        idInitial = id;
+        id = m_editingCube->fillMapArray(rgbFrame->cubeMap, id, i);
 
-    //TODO: fill arrays
+        //Update map at level
+        rgbFrame->mapAtLevel[rgbFrame->numberOfLevels-i-1] = idInitial-id;
+    }
+
+    //Get child ID (Pixels)
+    int index = 0;
+    for(int i = 0 ; i < rgbFrame->mapAtLevel[0]; i++){
+        rgbFrame->childCubeId[i] = index;
+        index += numberHighBits(rgbFrame->cubeMap[i]);
+    }
+    //Get child ID (Maps)
+    index = 0;
+    for(int i = rgbFrame->mapAtLevel[0] ; i < rgbFrame->cubeMapArraySize; i++){
+        rgbFrame->childCubeId[i] = index;
+        index += numberHighBits(rgbFrame->cubeMap[i]);
+    }
 
     rgbFrame->unlock();
 }

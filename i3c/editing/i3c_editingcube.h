@@ -25,6 +25,8 @@ public:
     void getPixelAt(int x, int y, int z, Pixel* pixel);
 
     void setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned int* childCubeId, int myID);
+    int fillMapArray(unsigned char* mapArray, unsigned int currentId, int depth);
+    int fillPixelArray(Pixel* pixelArray, unsigned int currentId, int depth);
 
     void propageteAverage();
     unsigned char getMap();
