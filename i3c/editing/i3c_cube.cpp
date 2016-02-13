@@ -74,6 +74,7 @@ void I3C_Cube::resetEditingCube(int resolution)
 
 void I3C_Cube::cube2rgb(I3C_Frame *rgbFrame)
 {
+    rgbFrame->lock();
     rgbFrame->clear();
 
     rgbFrame->resolution = m_width;
@@ -92,6 +93,8 @@ void I3C_Cube::cube2rgb(I3C_Frame *rgbFrame)
 
 
     //TODO: fill arrays
+
+    rgbFrame->unlock();
 }
 
 void I3C_Cube::cube2yuv(/*TODO*/)
@@ -101,13 +104,14 @@ void I3C_Cube::cube2yuv(/*TODO*/)
 
 int I3C_Cube::rgb2cube(I3C_Frame *rgbFrame)
 {
+    rgbFrame->lock();
     //Remove existing editing cube
     this->resetEditingCube(rgbFrame->resolution);
 
     //Set new one
     m_editingCube->setCubes(rgbFrame->pixel, rgbFrame->cubeMap,
                             rgbFrame->childCubeId, rgbFrame->cubeMapArraySize-1);
-
+    rgbFrame->unlock();
     return I3C_SUCCESS;
 }
 

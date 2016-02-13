@@ -94,16 +94,22 @@ void I3C_EditingCube::setCubes(Pixel* pixel, unsigned char* cubeMap, unsigned in
         m_avgPxIsSet = true;
         return;
     }
+    unsigned char map = cubeMap[myId];
+    int offset = 0;
     for(int i = 0; i < 8; i++){
-        if((cubeMap[myId] & (0x01 << i)) != 0){
-            if(m_map &= (0x01 << i) != 0){
+        if((map & (0x01 << i)) != 0){
+            //If already exist, delete and build a new one
+            if(m_map & (0x01 << i) != 0){
                 delete m_childCube[i];
+                m_childCube[i] = NULL;
             }
-            m_map |= (0x01 << i);
             m_childCube[i] = new I3C_EditingCube(m_width/2);
-            m_childCube[i]->setCubes(pixel, cubeMap, childCubeId, childCubeId[myId+i]);
+            m_childCube[i]->setCubes(pixel, cubeMap, childCubeId, childCubeId[myId]+offset);
+            offset++;
         }
     }
+    //Update the map
+    m_map = map;
 }
 
 void I3C_EditingCube::propageteAverage()
