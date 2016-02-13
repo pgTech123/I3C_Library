@@ -89,6 +89,8 @@ void I3C_Cube::cube2rgb(I3C_Frame *rgbFrame)
     rgbFrame->cubeMap = new unsigned char[rgbFrame->cubeMapArraySize];
     rgbFrame->childCubeId = new unsigned int[rgbFrame->cubeMapArraySize];
 
+
+
     //TODO: fill arrays
 }
 

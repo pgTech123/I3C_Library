@@ -4,6 +4,59 @@ Tests::Tests()
 {
 }
 
+int Tests::runTests(int testsToRun)
+{
+    int appReturn;
+
+    //Run tests specified
+    if(testsToRun & I3C_TESTS_R1W1){
+        logs << "Running test RV1 -> WV1" << endl;
+        appReturn = readWriteV1();
+        if(appReturn){
+            logs << "Test readWriteV1 failed with code: " << appReturn << endl;
+            return appReturn;
+        }
+    }
+    if(testsToRun & I3C_TESTS_R1W2){
+        logs << "Running test RV1 -> WV2" << endl;
+        appReturn = readV1WriteV2();
+        if(appReturn){
+            logs << "Test readV1WriteV2 failed with code: " << appReturn << endl;
+            return appReturn;
+        }
+    }
+    if(testsToRun & I3C_TESTS_R2W1){
+        logs << "Running test RV2 -> WV1" << endl;
+        appReturn = readV2WriteV1();
+        if(appReturn){
+            logs << "Test readV2WriteV1 failed with code: " << appReturn << endl;
+            return appReturn;
+        }
+
+    }
+    if(testsToRun & I3C_TESTS_RENDER){
+#ifdef I3C_RENDER_MODULE_ENABLED
+        logs << "Running test Render" << endl;
+        appReturn = renderingEngine(argc, argv);
+        if(appReturn){
+            logs << "Test Render failed with code: " << appReturn << endl;
+            return appReturn;
+        }
+#endif
+    }
+    if(testsToRun & I3C_TESTS_EDITING){
+//#ifdef I3C_EDITING_MODULE_ENABLED
+        logs << "Running test Editing" << endl;
+        appReturn = testEditing();
+        if(appReturn){
+            logs << "Test Editing failed with code: " << appReturn << endl;
+            return appReturn;
+        }
+//#endif
+    }
+    return appReturn;
+}
+
 #ifdef I3C_RENDER_MODULE_ENABLED
 int Tests::renderingEngine(int argc, char *argv[])
 {
@@ -94,3 +147,13 @@ int Tests::readV2WriteV1()
 
     return I3C_SUCCESS;
 }
+
+//#ifdef   I3C_EDITING_MODULE_ENABLED
+int Tests::testEditing()
+{
+    TestEditing editingTests;
+    editingTests.testWritingReading();
+
+    return 0;
+}
+//#endif

@@ -165,7 +165,7 @@ int I3C_EditingCube::getPixelCount()
     }
     int count = 0;
     for(int i = 0; i < 8; i++){
-        if((m_map& (0x01 << i)) != 0){
+        if((m_map & (0x01 << i)) != 0){
             count += m_childCube[i]->getPixelCount();
         }
     }

@@ -56,7 +56,8 @@ SOURCES += \
     io/Images/image_v2.cpp \
     utils/i3c_converter.cpp \
     editing/i3c_cube.cpp \
-    editing/i3c_editingcube.cpp
+    editing/i3c_editingcube.cpp \
+    tests/editing/testediting.cpp
 
 HEADERS += \
     i3c.h \
@@ -76,7 +77,8 @@ HEADERS += \
     io/Images/image_v2.h \
     utils/i3c_converter.h \
     editing/i3c_cube.h \
-    editing/i3c_editingcube.h
+    editing/i3c_editingcube.h \
+    tests/editing/testediting.h
 
 DISTFILES += \
     render/cl_sources/video.cl\
