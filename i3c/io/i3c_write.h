@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <fstream>
 
-#include "./../i3c.h"
+#include "i3c.h"
 #include "Images/imagefile.h"
 #include "Video/videofile.h"
 

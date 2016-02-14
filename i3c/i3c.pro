@@ -1,3 +1,63 @@
+#------------------------------------------
+#       COMPILE AS LIBRARY (no render)
+#------------------------------------------
+
+#QT       -= core gui
+
+#TARGET = i3c
+#TEMPLATE = lib
+#CONFIG += staticlib
+
+#CONFIG += c++11
+#QT += opengl
+#QT += core
+#QT += gui
+#QT += widgets
+
+
+#INCLUDEPATH += "$$PWD/external/OpenCL/include"
+#LIBS += "-L$$PWD\external\OpenCL\lib\x86" -lOpenCL
+
+#SOURCES += \
+#    io/Video/videofile.cpp \
+#    io/i3c_write.cpp \
+#    io/i3c_read.cpp \
+#    i3c.cpp \
+#    io/Images/image_v1.cpp \
+#    io/Images/imagefile.cpp \
+#    utils/binary_func.cpp \
+#    io/Images/image_v2.cpp \
+#    utils/i3c_converter.cpp \
+#    editing/i3c_cube.cpp \
+#    editing/i3c_editingcube.cpp \
+
+#HEADERS += \
+#    i3c.h \
+#    io/Images/imagefile.h \
+#    io/Video/videofile.h \
+#    io/i3c_write.h \
+#    io/i3c_read.h \
+#    utils/binary_func.h \
+#    io/Images/image_v1.h \
+#    utils/logs.h \
+#    io/Images/image_v2.h \
+#    utils/i3c_converter.h \
+#    editing/i3c_cube.h \
+#    editing/i3c_editingcube.h \
+
+#unix {
+#    target.path = /usr/lib
+#    INSTALLS += target
+#}
+
+
+
+
+#-----------------------------------
+#       COMPILE AS EXECUTABLE
+#-----------------------------------
+
+
 CONFIG += c++11
 QT += opengl
 QT += core
